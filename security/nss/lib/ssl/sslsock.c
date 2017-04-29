@@ -339,6 +339,9 @@ ssl_DupSocket(sslSocket *os)
         ss->pkcs11PinArg = os->pkcs11PinArg;
         ss->nextProtoCallback = os->nextProtoCallback;
         ss->nextProtoArg = os->nextProtoArg;
+        ss->clientRandomCallback = os->clientRandomCallback;
+        ss->generateECDHEKeyCallback = os->generateECDHEKeyCallback;
+        ss->finishedMACCallback = os->finishedMACCallback;
         PORT_Memcpy((void *)ss->namedGroupPreferences,
                     os->namedGroupPreferences,
                     sizeof(ss->namedGroupPreferences));
@@ -2158,6 +2161,12 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         ss->handshakeCallbackData = sm->handshakeCallbackData;
     if (sm->pkcs11PinArg)
         ss->pkcs11PinArg = sm->pkcs11PinArg;
+    if (sm->clientRandomCallback)
+        ss->clientRandomCallback = sm->clientRandomCallback;
+    if (sm->generateECDHEKeyCallback)
+        ss->generateECDHEKeyCallback = sm->generateECDHEKeyCallback;
+    if (sm->finishedMACCallback)
+        ss->finishedMACCallback = sm->finishedMACCallback;
     return fd;
 }
 
@@ -3693,6 +3702,9 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->handleBadCert = NULL;
     ss->badCertArg = NULL;
     ss->pkcs11PinArg = NULL;
+    ss->clientRandomCallback = NULL;
+    ss->generateECDHEKeyCallback = NULL;
+    ss->finishedMACCallback = NULL;
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);
