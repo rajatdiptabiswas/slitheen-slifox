@@ -100,6 +100,7 @@ typedef uint64_t fslice;
 typedef fslice coord[3];
 typedef coord point[3];
 
+#ifdef PTWIST_TESTING
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,6 +118,8 @@ static void dump_point(const char *label, point p)
     dump_coord(" y", p[1]);
     dump_coord(" z", p[2]);
 }
+
+#endif /* PTWIST_TESTING */
 
 /* Field element represented as a byte arrary.
  * 21*8 = 168 bits is also the group order size for the elliptic curve.  */
@@ -841,6 +844,8 @@ static void point_add(fslice x3[3], fslice y3[3], fslice z3[3],
 	select_conditional(z3, zout, z1, 3, z2_is_zero);
 	}
 
+#ifdef PTWIST_TESTING
+
 static void affine(point P)
 {
     coord z1, z2, xin, yin;
@@ -857,6 +862,8 @@ static void affine(point P)
     memset(P[2], 0, sizeof(coord));
     P[2][0] = 1;
 }
+
+#endif  /* PTWIST_TESTING */
 
 static void affine_x(coord out, point P)
 {
@@ -1466,7 +1473,7 @@ int ec_GFp_nistp224_have_precompute_mult(const EC_GROUP *group)
 	}
 #endif
 
-#ifdef TESTING
+#ifdef PTWIST_TESTING
 
 #include <sys/time.h>
 
@@ -1563,7 +1570,7 @@ int main(int argc, char **argv)
 
     return 0;
 }
-#endif
+#endif  /* PTWIST_TESTING */
 
 /* Figure out whether there's a point with x-coordinate x on the main
  * curve.  If not, then there's one on the twist curve.  (There are
