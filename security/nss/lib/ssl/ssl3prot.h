@@ -152,7 +152,7 @@ typedef struct {
     PRUint8 empty;
 } SSL3HelloRequest;
 
-typedef struct {
+typedef struct SSL3RandomStr {
     SSL3Opaque rand[SSL3_RANDOM_LENGTH];
 } SSL3Random;
 
@@ -275,7 +275,7 @@ typedef enum {
 
 typedef SSL3HashesIndividually SSL3Finished;
 
-typedef struct {
+typedef struct TLSFinishedStr {
     SSL3Opaque verify_data[12];
 } TLSFinished;
 
