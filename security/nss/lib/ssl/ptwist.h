@@ -4,6 +4,8 @@
 #define PTWIST_BITS 168  /* must be a multiple of 8 */
 #define PTWIST_BYTES (PTWIST_BITS/8)
 
+#define PTWIST_RANDBYTES (PTWIST_BYTES + 1)
+
 #define PTWIST_TAG_BITS 224  /* must be a multiple of 8 */
 #define PTWIST_TAG_BYTES (PTWIST_TAG_BITS/8)
 

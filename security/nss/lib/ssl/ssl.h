@@ -1347,7 +1347,7 @@ SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
  * SSL_ERROR_GENERATE_RANDOM_FAILURE will be asserted.  Called from
  * ssl3_SendClientHello().
  */
-typedef struct sslSocketStr sslSocketPtr;
+typedef struct sslSocketStr *sslSocketPtr;
 typedef struct SSL3RandomStr *SSL3RandomPtr;
 typedef SECStatus(PR_CALLBACK *SSLClientRandomCallback)(
     sslSocketPtr ss, SSL3RandomPtr r);
