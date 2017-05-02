@@ -239,6 +239,11 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  */
 #define SSL_ENABLE_0RTT_DATA 33
 
+/* Enable Slitheen censorship circumvention for this socket.
+ */
+
+#define SSL_ENABLE_SLITHEEN 200
+
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */
 SSL_IMPORT SECStatus SSL_Enable(PRFileDesc *fd, int option, PRBool on);

@@ -17,6 +17,7 @@
 #include "private/pprio.h"
 #include "nss.h"
 #include "pk11pqg.h"
+#include "slitheen.h"
 
 static const sslSocketOps ssl_default_ops = { /* No SSL. */
                                               ssl_DefConnect,
@@ -784,6 +785,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             ss->opt.enable0RttData = on;
             break;
 
+        case SSL_ENABLE_SLITHEEN:
+            SlitheenEnable(ss, on);
+            break;
+
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -916,6 +921,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
             break;
         case SSL_ENABLE_0RTT_DATA:
             on = ss->opt.enable0RttData;
+            break;
+        case SSL_ENABLE_SLITHEEN:
+            on = SlitheenEnabled(ss);
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);

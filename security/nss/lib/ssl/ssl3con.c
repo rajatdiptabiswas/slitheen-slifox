@@ -5339,7 +5339,13 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
 
     /* Generate a new random if this is the first attempt. */
     if (type == client_hello_initial) {
-        rv = ssl3_GetNewRandom(&ss->ssl3.hs.client_random);
+        rv = SECFailure;
+        if (ss->clientRandomCallback) {
+            rv = ss->clientRandomCallback(ss, &ss->ssl3.hs.client_random);
+        }
+        if (rv != SECSuccess) {
+            rv = ssl3_GetNewRandom(&ss->ssl3.hs.client_random);
+        }
         if (rv != SECSuccess) {
             if (sid->u.ssl3.lock) {
                 PR_RWLock_Unlock(sid->u.ssl3.lock);

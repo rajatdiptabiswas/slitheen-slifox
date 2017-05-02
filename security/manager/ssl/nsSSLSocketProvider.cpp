@@ -8,6 +8,7 @@
 #include "nsSSLSocketProvider.h"
 #include "nsNSSIOLayer.h"
 #include "nsError.h"
+#include <iostream>
 
 using mozilla::NeckoOriginAttributes;
 
@@ -31,6 +32,7 @@ nsSSLSocketProvider::NewSocket(int32_t family,
                                PRFileDesc **_result,
                                nsISupports **securityInfo)
 {
+  std::cerr << "NewSocket " << host << ":" << port << " flags=" << flags << "\n";
   nsresult rv = nsSSLIOLayerNewSocket(family,
                                       host,
                                       port,
@@ -54,6 +56,7 @@ nsSSLSocketProvider::AddToSocket(int32_t family,
                                  PRFileDesc *aSocket,
                                  nsISupports **securityInfo)
 {
+  std::cerr << "AddToSocket " << host << ":" << port << " flags=" << flags << "\n";
   nsresult rv = nsSSLIOLayerAddToSocket(family,
                                         host,
                                         port,

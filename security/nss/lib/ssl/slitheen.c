@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "prerror.h"
+#include "prio.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "pk11func.h"
@@ -176,16 +178,36 @@ static void slitheen_gen_tag(byte tag[PTWIST_TAG_BYTES], byte key[16],
     memmove(key, taghashout+16, 16);
 }
 
-SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
+static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
 {
     SlitheenKeys skeys;
     int res;
     size_t offset = SSL3_RANDOM_LENGTH - PTWIST_TAG_BYTES;
     byte randbytes[PTWIST_RANDBYTES];
     byte sharedkey[16];
-    unsigned char context[4] = { 1, 2, 3, 4 };
+    unsigned char context[4];
+    PRNetAddr peeraddr;
+    PRStatus prres;
 
     PORT_Assert(SSL3_RANDOM_LENGTH >= PWTIST_TAG_BYTES);
+
+    prres = PR_GetPeerName(ss->fd, &peeraddr);
+    if (prres == PR_SUCCESS) {
+        if (peeraddr.inet.family != PR_AF_INET) {
+            fprintf(stderr, "Unexpected address family: %d\n",
+                    peeraddr.inet.family);
+            return SECFailure;
+        } else {
+            /*
+            fprintf(stderr, "Connected to %08x:%d\n", ntohl(peeraddr.inet.ip),
+                ntohs(peeraddr.inet.port));
+            */
+            memmove(context, &peeraddr.inet.ip, 4);
+        }
+    } else {
+        fprintf(stderr, "GetPeerName failed: %d\n", PR_GetError());
+        return SECFailure;
+    }
 
     res = slitheen_load_current_keys(&skeys);
     if (res < 0) {
@@ -264,3 +286,22 @@ int main(int argc, char **argv)
 }
 
 #endif  /* SLITHEEN_TAG_TESTING */
+
+SECStatus SlitheenEnable(sslSocket *ss, PRBool on)
+{
+    if (on) {
+        ss->clientRandomCallback = SlitheenClientRandomCallback;
+    } else {
+        ss->clientRandomCallback = NULL;
+    }
+
+    return SECSuccess;
+}
+
+PRBool SlitheenEnabled(const sslSocket *ss)
+{
+    if (ss->clientRandomCallback == SlitheenClientRandomCallback) {
+        return PR_TRUE;
+    }
+    return PR_FALSE;
+}
