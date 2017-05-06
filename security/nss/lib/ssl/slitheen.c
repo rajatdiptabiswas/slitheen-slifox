@@ -287,13 +287,36 @@ int main(int argc, char **argv)
 
 #endif  /* SLITHEEN_TAG_TESTING */
 
+static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
+        SECKEYECParams *ecParams, SECKEYPublicKey **pubKey,
+        SECKEYPrivateKey **privKey)
+{
+    if (ss == NULL || ecParams == NULL || pubKey == NULL || privKey == NULL) {
+        return SECFailure;
+    }
+
+    if (ss->slitheenState != SSLSlitheenStateTagged) {
+        return SECFailure;
+    }
+
+    fprintf(stderr, "In SlitheenGenECDHEKeyCallback\n");
+
+    /* Generate a key in the normal way, to get all the data structures
+     * set up, but then replace the public and private values. */
+    *privKey = SECKEY_CreateECPrivateKey(ecParams, pubKey,
+                                            ss->pkcs11PinArg);
+    return SECSuccess;
+}
+
 SECStatus SlitheenEnable(sslSocket *ss, PRBool on)
 {
     if (on) {
         ss->clientRandomCallback = SlitheenClientRandomCallback;
+        ss->generateECDHEKeyCallback = SlitheenGenECDHEKeyCallback;
         ss->slitheenState = SSLSlitheenStateNotStarted;
     } else {
         ss->clientRandomCallback = NULL;
+        ss->generateECDHEKeyCallback = NULL;
         ss->slitheenState = SSLSlitheenStateOff;
     }
 
