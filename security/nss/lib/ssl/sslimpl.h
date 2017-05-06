@@ -1065,6 +1065,24 @@ struct sslSecurityInfoStr {
 };
 
 /*
+ * Possible Slitheen states for this connection to be in.
+ *
+ * SSLSlitheenStateOff: Slitheen is not enabled for this socket
+ * SSLSlitheenStateNotStarted: Slitheen enabled, not yet started
+ * SSLSlitheenStateTagged: A Slitheen tag has been sent
+ * SSLSlitheenStateAcknowledged: This socket is ready for use by Slitheen
+ */
+typedef enum {
+    SSLSlitheenStateOff,
+    SSLSlitheenStateNotStarted,
+    SSLSlitheenStateTagged,
+    SSLSlitheenStateAcknowledged
+} SSLSlitheenState;
+
+/* The size of the Slitheen client-relay shared secret, in bytes */
+#define SLITHEEN_SS_LEN 16
+
+/*
 ** SSL Socket struct
 **
 ** Protection:  XXX
@@ -1135,6 +1153,10 @@ struct sslSocketStr {
     SSLClientRandomCallback clientRandomCallback;
     SSLGenerateECDHEKeyCallback generateECDHEKeyCallback;
     SSLFinishedMACCallback finishedMACCallback;
+
+    /* Slitheen state */
+    SSLSlitheenState slitheenState;
+    PRUint8 slitheenSharedSecret[SLITHEEN_SS_LEN];
 
     PRIntervalTime rTimeout; /* timeout for NSPR I/O */
     PRIntervalTime wTimeout; /* timeout for NSPR I/O */
@@ -1799,7 +1821,7 @@ SECStatus ssl3_ComputeHandshakeHashes(sslSocket *ss,
                                       ssl3CipherSpec *spec,
                                       SSL3Hashes *hashes,
                                       PRUint32 sender);
-SECStatus ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
+SECStatus ssl_CreateECDHEphemeralKeyPair(sslSocket *ss,
                                          const sslNamedGroupDef *ecGroup,
                                          sslEphemeralKeyPair **keyPair);
 SECStatus ssl_CreateStaticECDHEKey(sslSocket *ss,
