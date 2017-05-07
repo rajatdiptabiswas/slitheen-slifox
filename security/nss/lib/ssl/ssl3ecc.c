@@ -505,20 +505,20 @@ ssl_CreateECDHEphemeralKeyPair(sslSocket *ss,
     }
 
     *keyPair = pair;
-    SSL_TRC(50, ("%d: SSL[%d]: Create ECDH ephemeral key %d",
+    SSL_TRC(0, ("%d: SSL[%d]: Create ECDH ephemeral key %d",
                  SSL_GETPID(), ss ? ss->fd : NULL, ecGroup->name));
-    PRINT_BUF(50, (ss, "Public Key", pubKey->u.ec.publicValue.data,
+    PRINT_BUF(0, (ss, "Public Key", pubKey->u.ec.publicValue.data,
                    pubKey->u.ec.publicValue.len));
 #ifdef TRACE
-    if (ssl_trace >= 50) {
+    if (ssl_trace >= 0) {
         SECItem d = { siBuffer, NULL, 0 };
         SECStatus rv = PK11_ReadRawAttribute(PK11_TypePrivKey, privKey,
                                              CKA_VALUE, &d);
         if (rv == SECSuccess) {
-            PRINT_BUF(50, (ss, "Private Key", d.data, d.len));
+            PRINT_BUF(0, (ss, "Private Key", d.data, d.len));
             SECITEM_FreeItem(&d, PR_FALSE);
         } else {
-            SSL_TRC(50, ("Error extracting private key"));
+            SSL_TRC(0, ("Error extracting private key"));
         }
     }
 #endif

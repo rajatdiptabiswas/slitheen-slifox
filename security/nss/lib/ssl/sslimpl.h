@@ -10,6 +10,8 @@
 #ifndef __sslimpl_h_
 #define __sslimpl_h_
 
+#define DEBUG 1
+
 #ifdef DEBUG
 #undef NDEBUG
 #else
