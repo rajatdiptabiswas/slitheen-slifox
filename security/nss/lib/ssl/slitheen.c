@@ -31,8 +31,8 @@ static int slitheen_load_current_keys(SlitheenKeys *slitheenkeys)
     memset(slitheenkeys->twistgen, 0, PTWIST_BYTES);
 
     /* Find the Slitheen pubkey file */
-    pubkeyfilename = getenv("SLITHEEN_PUBKEY");
-    if (pubkeyfilename == NULL) {
+    pubkeyfilename = PR_GetEnvSecure("SLITHEEN_PUBKEY");
+    if (pubkeyfilename == NULL || *pubkeyfilename == '\0') {
         fprintf(stderr, "SLITHEEN_PUBKEY undefined\n");
         return -1;
     }
@@ -293,14 +293,13 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
 {
     SECItem keysecitem;
     SECItem prfparam = { siBuffer, NULL, 0 };
+    SECItem privkeybuf = { siBuffer, NULL, 0 };
+    SECItem pubkeybuf = { siBuffer, NULL, 0 };
     PK11SymKey *pk11symkey = NULL;
     PK11Context *prf_context = NULL;
     SECStatus rv = SECFailure;
     unsigned int retlen = 0;
     PK11SlotInfo *slot = PK11_GetInternalSlot();
-
-    unsigned char tmpout[16];
-    unsigned int tmpoutlen = 16;
 
     if (ss == NULL || ecParams == NULL || pubKey == NULL || privKey == NULL) {
         return SECFailure;
@@ -314,7 +313,8 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
         return SECFailure;
     }
 
-    fprintf(stderr, "In SlitheenGenECDHEKeyCallback\n");
+    *privKey = NULL;
+    *pubKey = NULL;
 
     /* Create a MAC key PKCS11 object out of the client-relay shared
      * secret */
@@ -329,9 +329,35 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
         return SECFailure;
     }
 
-    fprintf(stderr, "Built key\n");
-    PRINT_BUF(0,(ss, "Raw Bytes :", ss->slitheenSharedSecret, SLITHEEN_SS_LEN));
-    PRINT_KEY(0,(ss, "PK11SymKey:", pk11symkey));
+    PRINT_KEY(0,(ss, "Slitheen Shared Secret:", pk11symkey));
+
+    /* Generate a key in the normal way, to get all the data structures
+     * set up, but then we will replace the public and private values. */
+
+    *privKey = SECKEY_CreateECPrivateKey(ecParams, pubKey,
+                                            ss->pkcs11PinArg);
+    rv = PK11_ReadRawAttribute(PK11_TypePrivKey, *privKey, CKA_VALUE,
+                                &privkeybuf);
+    if (rv != SECSuccess) {
+        SECKEY_DestroyPrivateKey(*privKey);
+        SECKEY_DestroyPublicKey(*pubKey);
+        *privKey = NULL;
+        *pubKey = NULL;
+        return SECFailure;
+    }
+    rv = PK11_ReadRawAttribute(PK11_TypePubKey, *pubKey, CKA_EC_POINT,
+                                &pubkeybuf);
+    if (rv != SECSuccess) {
+        SECKEY_DestroyPrivateKey(*privKey);
+        SECKEY_DestroyPublicKey(*pubKey);
+        *privKey = NULL;
+        *pubKey = NULL;
+        SECITEM_FreeItem(&privkeybuf, PR_FALSE);
+        return SECFailure;
+    }
+
+    PRINT_BUF(0, (ss, "Private Key", privkeybuf.data, privkeybuf.len));
+    PRINT_BUF(0, (ss, "Public Key", pubkeybuf.data, pubkeybuf.len));
 
     /* The ECDH private key will be PRF_pk11symkey("SLITHEEN_KEYGEN") */
 
@@ -340,29 +366,55 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
                     pk11symkey, &prfparam);
     if (!prf_context) {
         PK11_FreeSymKey(pk11symkey);
+        SECKEY_DestroyPrivateKey(*privKey);
+        SECKEY_DestroyPublicKey(*pubKey);
+        *privKey = NULL;
+        *pubKey = NULL;
+        SECITEM_FreeItem(&privkeybuf, PR_FALSE);
+        SECITEM_FreeItem(&pubkeybuf, PR_FALSE);
         return SECFailure;
     }
 
     rv = PK11_DigestBegin(prf_context);
     rv |= PK11_DigestOp(prf_context,
                         (const unsigned char *)"SLITHEEN_KEYGEN", 15);
-    rv |= PK11_DigestFinal(prf_context, tmpout, &retlen, tmpoutlen);
+    rv |= PK11_DigestFinal(prf_context, privkeybuf.data, &retlen,
+                            privkeybuf.len);
 
     PK11_DestroyContext(prf_context, PR_TRUE);
+    SECITEM_FreeItem(&prfparam, PR_FALSE);
     prf_context = NULL;
     PK11_FreeSymKey(pk11symkey);
     pk11symkey = NULL;
 
-    if (rv != SECSuccess || retlen != tmpoutlen) {
+    if (rv != SECSuccess || retlen != privkeybuf.len) {
+        SECKEY_DestroyPrivateKey(*privKey);
+        SECKEY_DestroyPublicKey(*pubKey);
+        *privKey = NULL;
+        *pubKey = NULL;
+        SECITEM_FreeItem(&privkeybuf, PR_FALSE);
+        SECITEM_FreeItem(&pubkeybuf, PR_FALSE);
         return SECFailure;
     }
 
-    PRINT_BUF(0,(ss, "PRF output:", tmpout, tmpoutlen));
+    rv = PK11_WriteRawAttribute(PK11_TypePrivKey, *privKey, CKA_VALUE,
+                                &privkeybuf);
+    if (rv != SECSuccess) {
+        fprintf(stderr, "WriteRawAttribute failed: %d\n", PR_GetError());
+        SECKEY_DestroyPrivateKey(*privKey);
+        SECKEY_DestroyPublicKey(*pubKey);
+        *privKey = NULL;
+        *pubKey = NULL;
+        SECITEM_FreeItem(&privkeybuf, PR_FALSE);
+        SECITEM_FreeItem(&pubkeybuf, PR_FALSE);
+        return SECFailure;
+    }
 
-    /* Generate a key in the normal way, to get all the data structures
-     * set up, but then replace the public and private values. */
-    *privKey = SECKEY_CreateECPrivateKey(ecParams, pubKey,
-                                            ss->pkcs11PinArg);
+    PRINT_BUF(0, (ss, "New Private Key", privkeybuf.data, privkeybuf.len));
+
+    SECITEM_FreeItem(&privkeybuf, PR_FALSE);
+    SECITEM_FreeItem(&pubkeybuf, PR_FALSE);
+
     return SECSuccess;
 }
 
