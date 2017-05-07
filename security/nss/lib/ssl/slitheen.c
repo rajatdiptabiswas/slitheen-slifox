@@ -291,7 +291,22 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
         SECKEYECParams *ecParams, SECKEYPublicKey **pubKey,
         SECKEYPrivateKey **privKey)
 {
+    SECItem keysecitem;
+    SECItem prfparam = { siBuffer, NULL, 0 };
+    PK11SymKey *pk11symkey = NULL;
+    PK11Context *prf_context = NULL;
+    SECStatus rv = SECFailure;
+    unsigned int retlen = 0;
+    PK11SlotInfo *slot = PK11_GetInternalSlot();
+
+    unsigned char tmpout[16];
+    unsigned int tmpoutlen = 16;
+
     if (ss == NULL || ecParams == NULL || pubKey == NULL || privKey == NULL) {
+        return SECFailure;
+    }
+
+    if (slot == NULL) {
         return SECFailure;
     }
 
@@ -300,6 +315,49 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
     }
 
     fprintf(stderr, "In SlitheenGenECDHEKeyCallback\n");
+
+    /* Create a MAC key PKCS11 object out of the client-relay shared
+     * secret */
+    keysecitem.type = siBuffer;
+    keysecitem.data = ss->slitheenSharedSecret;
+    keysecitem.len = SLITHEEN_SS_LEN;
+
+    pk11symkey = PK11_ImportSymKey(slot, CKM_SHA256_HMAC,
+        PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
+    PK11_FreeSlot(slot);
+    if (!pk11symkey) {
+        return SECFailure;
+    }
+
+    fprintf(stderr, "Built key\n");
+    PRINT_BUF(0,(ss, "Raw Bytes :", ss->slitheenSharedSecret, SLITHEEN_SS_LEN));
+    PRINT_KEY(0,(ss, "PK11SymKey:", pk11symkey));
+
+    /* The ECDH private key will be PRF_pk11symkey("SLITHEEN_KEYGEN") */
+
+    prf_context = PK11_CreateContextBySymKey(
+                    CKM_NSS_TLS_PRF_GENERAL_SHA256, CKA_SIGN,
+                    pk11symkey, &prfparam);
+    if (!prf_context) {
+        PK11_FreeSymKey(pk11symkey);
+        return SECFailure;
+    }
+
+    rv = PK11_DigestBegin(prf_context);
+    rv |= PK11_DigestOp(prf_context,
+                        (const unsigned char *)"SLITHEEN_KEYGEN", 15);
+    rv |= PK11_DigestFinal(prf_context, tmpout, &retlen, tmpoutlen);
+
+    PK11_DestroyContext(prf_context, PR_TRUE);
+    prf_context = NULL;
+    PK11_FreeSymKey(pk11symkey);
+    pk11symkey = NULL;
+
+    if (rv != SECSuccess || retlen != tmpoutlen) {
+        return SECFailure;
+    }
+
+    PRINT_BUF(0,(ss, "PRF output:", tmpout, tmpoutlen));
 
     /* Generate a key in the normal way, to get all the data structures
      * set up, but then replace the public and private values. */
