@@ -497,6 +497,18 @@ SECKEYPrivateKey *PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot,
                                                   CK_MECHANISM_TYPE type, void *param, SECKEYPublicKey **pubk,
                                                   PK11AttrFlags attrFlags, CK_FLAGS opFlags, CK_FLAGS opFlagsMask,
                                                   void *wincx);
+
+/*
+ * A version of PK11_GenerateKeyPairWithOpFlags that allows the caller
+ * to specify the bytes of the private key.
+ */
+SECKEYPrivateKey *
+PK11_GenerateKeyPairWithOpFlagsPrivBytes(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
+                                void *param, SECKEYPublicKey **pubKey, PK11AttrFlags attrFlags,
+                                CK_FLAGS opFlags, CK_FLAGS opFlagsMask, void *wincx,
+                                CK_BYTE *privkeybytes,
+                                unsigned int privkeylen);
+
 /*
  * The attrFlags is the logical OR of the PK11_ATTR_XXX bitflags.
  * These flags apply to the private key.  The PK11_ATTR_TOKEN,

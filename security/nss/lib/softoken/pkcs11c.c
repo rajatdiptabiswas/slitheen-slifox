@@ -4693,6 +4693,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
 
 #ifndef NSS_DISABLE_ECC
     /* Elliptic Curve Cryptography */
+    SECItem privbytes = { siBuffer, NULL, 0 };
     SECItem ecEncodedParams; /* DER Encoded parameters */
     ECPrivateKey *ecPriv;
     ECParams *ecParams;
@@ -5044,6 +5045,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
 
 #ifndef NSS_DISABLE_ECC
         case CKM_EC_KEY_PAIR_GEN:
+            sftk_Attribute2SecItem(NULL, &privbytes, privateKey, CKA_VALUE);
             sftk_DeleteAttributeType(privateKey, CKA_EC_PARAMS);
             sftk_DeleteAttributeType(privateKey, CKA_VALUE);
             sftk_DeleteAttributeType(privateKey, CKA_NETSCAPE_DB);
@@ -5052,13 +5054,16 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             /* extract the necessary parameters and copy them to private keys */
             crv = sftk_Attribute2SSecItem(NULL, &ecEncodedParams, publicKey,
                                           CKA_EC_PARAMS);
-            if (crv != CKR_OK)
+            if (crv != CKR_OK) {
+                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
+            }
 
             crv = sftk_AddAttributeType(privateKey, CKA_EC_PARAMS,
                                         sftk_item_expand(&ecEncodedParams));
             if (crv != CKR_OK) {
                 PORT_Free(ecEncodedParams.data);
+                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
             }
 
@@ -5067,17 +5072,25 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             PORT_Free(ecEncodedParams.data);
             if (rv != SECSuccess) {
                 crv = sftk_MapCryptError(PORT_GetError());
+                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
             }
-            rv = EC_NewKey(ecParams, &ecPriv);
+            if (privbytes.data) {
+                rv = EC_NewKeyFromSeed(ecParams, &ecPriv,
+                                        privbytes.data, privbytes.len);
+            } else {
+                rv = EC_NewKey(ecParams, &ecPriv);
+            }
             if (rv != SECSuccess) {
                 if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
                     sftk_fatalError = PR_TRUE;
                 }
                 PORT_FreeArena(ecParams->arena, PR_TRUE);
                 crv = sftk_MapCryptError(PORT_GetError());
+                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
             }
+            SECITEM_FreeItem(&privbytes, PR_FALSE);
 
             if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT") ||
                 ecParams->fieldID.type == ec_field_plain) {

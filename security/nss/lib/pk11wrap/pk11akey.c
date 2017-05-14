@@ -1130,9 +1130,11 @@ PK11_LoadPrivKey(PK11SlotInfo *slot, SECKEYPrivateKey *privKey,
  * Use the token to generate a key pair.
  */
 SECKEYPrivateKey *
-PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
+PK11_GenerateKeyPairWithOpFlagsPrivBytes(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                                 void *param, SECKEYPublicKey **pubKey, PK11AttrFlags attrFlags,
-                                CK_FLAGS opFlags, CK_FLAGS opFlagsMask, void *wincx)
+                                CK_FLAGS opFlags, CK_FLAGS opFlagsMask, void *wincx,
+                                CK_BYTE *privkeybytes,
+                                unsigned int privkeylen)
 {
     /* we have to use these native types because when we call PKCS 11 modules
      * we have to make sure that we are using the correct sizes for all the
@@ -1151,6 +1153,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
         { CKA_DECRYPT, NULL, 0 },
         { CKA_EXTRACTABLE, NULL, 0 },
         { CKA_MODIFIABLE, NULL, 0 },
+        { CKA_VALUE, NULL, 0 },
     };
     CK_ATTRIBUTE rsaPubTemplate[] = {
         { CKA_MODULUS_BITS, NULL, 0 },
@@ -1504,6 +1507,10 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
                   mechanism_info.flags & CKF_DECRYPT ? &cktrue : &ckfalse,
                   sizeof(CK_BBOOL));
     privattrs++;
+    if (privkeybytes != NULL && privkeylen > 0) {
+        PK11_SETATTRS(privattrs, CKA_VALUE, privkeybytes, privkeylen);
+        privattrs++;
+    }
 
     if (token) {
         session_handle = PK11_GetRWSession(slot);
@@ -1604,6 +1611,16 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     }
 
     return privKey;
+}
+
+SECKEYPrivateKey *
+PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
+                                void *param, SECKEYPublicKey **pubKey, PK11AttrFlags attrFlags,
+                                CK_FLAGS opFlags, CK_FLAGS opFlagsMask, void *wincx)
+{
+    return PK11_GenerateKeyPairWithOpFlagsPrivBytes(slot, type, param,
+                pubKey, attrFlags, opFlags, opFlagsMask, wincx,
+                NULL, 0);
 }
 
 SECKEYPrivateKey *
