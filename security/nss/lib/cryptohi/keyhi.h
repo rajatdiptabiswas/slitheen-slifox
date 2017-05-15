@@ -91,6 +91,15 @@ SECKEYPrivateKey *SECKEY_CreateECPrivateKey(SECKEYECParams *param,
                                             SECKEYPublicKey **pubk, void *cx);
 
 /*
+ * create a new EC key pair using the given bytes for the private key.
+ * The private Key is returned...
+ */
+SECKEYPrivateKey *SECKEY_CreateECPrivateKeyPrivBytes(SECKEYECParams *param,
+                                            SECKEYPublicKey **pubk, void *cx,
+                                            CK_BYTE *privkeybytes,
+                                            unsigned int privkeylen);
+
+/*
 ** Create a subject-public-key-info based on a public key.
 */
 extern CERTSubjectPublicKeyInfo *
