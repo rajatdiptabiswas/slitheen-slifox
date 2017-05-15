@@ -4756,6 +4756,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
         sftk_FreeObject(privateKey);
         return CKR_HOST_MEMORY;
     }
+    sftk_Attribute2SecItem(NULL, &privbytes, privateKey, CKA_VALUE);
     sftk_DeleteAttributeType(privateKey, CKA_CLASS);
     sftk_DeleteAttributeType(privateKey, CKA_KEY_TYPE);
     sftk_DeleteAttributeType(privateKey, CKA_VALUE);
@@ -5045,7 +5046,6 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
 
 #ifndef NSS_DISABLE_ECC
         case CKM_EC_KEY_PAIR_GEN:
-            sftk_Attribute2SecItem(NULL, &privbytes, privateKey, CKA_VALUE);
             sftk_DeleteAttributeType(privateKey, CKA_EC_PARAMS);
             sftk_DeleteAttributeType(privateKey, CKA_VALUE);
             sftk_DeleteAttributeType(privateKey, CKA_NETSCAPE_DB);
@@ -5055,7 +5055,6 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             crv = sftk_Attribute2SSecItem(NULL, &ecEncodedParams, publicKey,
                                           CKA_EC_PARAMS);
             if (crv != CKR_OK) {
-                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
             }
 
@@ -5063,7 +5062,6 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
                                         sftk_item_expand(&ecEncodedParams));
             if (crv != CKR_OK) {
                 PORT_Free(ecEncodedParams.data);
-                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
             }
 
@@ -5072,7 +5070,6 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             PORT_Free(ecEncodedParams.data);
             if (rv != SECSuccess) {
                 crv = sftk_MapCryptError(PORT_GetError());
-                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
             }
             if (privbytes.data) {
@@ -5087,10 +5084,8 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
                 }
                 PORT_FreeArena(ecParams->arena, PR_TRUE);
                 crv = sftk_MapCryptError(PORT_GetError());
-                SECITEM_FreeItem(&privbytes, PR_FALSE);
                 break;
             }
-            SECITEM_FreeItem(&privbytes, PR_FALSE);
 
             if (PR_GetEnvSecure("NSS_USE_DECODED_CKA_EC_POINT") ||
                 ecParams->fieldID.type == ec_field_plain) {
@@ -5129,6 +5124,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
         default:
             crv = CKR_MECHANISM_INVALID;
     }
+    SECITEM_FreeItem(&privbytes, PR_FALSE);
 
     if (crv != CKR_OK) {
         sftk_FreeObject(privateKey);
