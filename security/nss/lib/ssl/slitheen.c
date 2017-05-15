@@ -184,7 +184,7 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
     int res;
     size_t offset = SSL3_RANDOM_LENGTH - PTWIST_TAG_BYTES;
     byte randbytes[PTWIST_RANDBYTES];
-    unsigned char context[4];
+    unsigned char context[4 + SSL3_RANDOM_LENGTH - PTWIST_TAG_BYTES];
     PRNetAddr peeraddr;
     PRStatus prres;
 
@@ -201,7 +201,7 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
             fprintf(stderr, "Connected to %08x:%d\n", ntohl(peeraddr.inet.ip),
                 ntohs(peeraddr.inet.port));
             */
-            memmove(context, &peeraddr.inet.ip, 4);
+            PORT_Memcpy(context, &peeraddr.inet.ip, 4);
         }
     } else {
         fprintf(stderr, "GetPeerName failed: %d\n", PR_GetError());
@@ -219,6 +219,7 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
     /* Genreate random bytes to put in front of the tag */
     if (offset > 0) {
         PK11_GenerateRandom(r->rand, offset);
+        PORT_Memcpy(context + 4, r->rand, offset);
     }
 
     slitheen_gen_tag(r->rand+offset, ss->slitheenSharedSecret,
