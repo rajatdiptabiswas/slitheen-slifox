@@ -484,7 +484,8 @@ ssl_CreateECDHEphemeralKeyPair(sslSocket *ss,
         return SECFailure;
     }
     if (ss->generateECDHEKeyCallback) {
-        rv = ss->generateECDHEKeyCallback(ss, &ecParams, &pubKey, &privKey);
+        rv = ss->generateECDHEKeyCallback(ss, ecGroup->bits, &ecParams,
+                                            &pubKey, &privKey);
     }
     if (rv != SECSuccess) {
         privKey = SECKEY_CreateECPrivateKey(&ecParams, &pubKey,

@@ -1370,8 +1370,8 @@ typedef SECStatus(PR_CALLBACK *SSLClientRandomCallback)(
  * asserted.  Called from ssl_CreateECDHEphemeralKeyPair().
  */
 typedef SECStatus(PR_CALLBACK *SSLGenerateECDHEKeyCallback)(
-    sslSocketPtr ss, SECKEYECParams *ecParams, SECKEYPublicKey **pubKey,
-    SECKEYPrivateKey **privKey);
+    sslSocketPtr ss, unsigned int group_bits, SECKEYECParams *ecParams,
+    SECKEYPublicKey **pubKey, SECKEYPrivateKey **privKey);
 
 /* Applications that wish to be able to accept different Finished MACs
  * to indicate different signals from the server can use this callback
