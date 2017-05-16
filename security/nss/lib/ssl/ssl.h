@@ -1352,10 +1352,8 @@ SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
 
 /* Applications that wish to provide a specific ClientRandom value can
  * use this callback function.  SECSuccess indicates that the call was
- * successful, and SSL3_RANDOM_LENGTH bytes were written to r->rand.  If
- * the callback does not return SECSuccess then
- * SSL_ERROR_GENERATE_RANDOM_FAILURE will be asserted.  Called from
- * ssl3_SendClientHello().
+ * successful, and SSL3_RANDOM_LENGTH bytes were written to r->rand.
+ * Called from ssl3_SendClientHello().
  */
 typedef struct sslSocketStr *sslSocketPtr;
 typedef struct SSL3RandomStr *SSL3RandomPtr;
@@ -1365,9 +1363,8 @@ typedef SECStatus(PR_CALLBACK *SSLClientRandomCallback)(
 /* Applications that wish to generate their ECDHE keys deterministically
  * from a seed can use this callback function.  SECSuccess indicates
  * that the call was successful; *pubKey and *privKey point to the newly
- * allocated public and private keys, respectively.  If the callback
- * does not return SECSuccess then SEC_ERROR_KEYGEN_FAIL will be
- * asserted.  Called from ssl_CreateECDHEphemeralKeyPair().
+ * allocated public and private keys, respectively.  Called from
+ * ssl_CreateECDHEphemeralKeyPair().
  */
 typedef SECStatus(PR_CALLBACK *SSLGenerateECDHEKeyCallback)(
     sslSocketPtr ss, unsigned int group_bits, SECKEYECParams *ecParams,
@@ -1376,13 +1373,13 @@ typedef SECStatus(PR_CALLBACK *SSLGenerateECDHEKeyCallback)(
 /* Applications that wish to be able to accept different Finished MACs
  * to indicate different signals from the server can use this callback
  * function.  SECSuccess indicates the call was successful, and the
- * library should accept this Finished message.  If the callback does
- * not return SECSuccess then SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE will be
- * raised.  Called from ssl3_HandleFinished().
+ * library should accept this Finished message.  Called from
+ * ssl3_HandleFinished().
  */
-typedef struct TLSFinishedStr *TLSFinishedPtr;
+typedef const struct TLSFinishedStr *TLSFinishedConstPtr;
 typedef SECStatus(PR_CALLBACK *SSLFinishedMACCallback)(
-    sslSocketPtr ss, const TLSFinishedPtr finmsg);
+    sslSocketPtr ss, TLSFinishedConstPtr finmsg,
+    TLSFinishedConstPtr expectedfinmsg);
 
 SEC_END_PROTOS
 

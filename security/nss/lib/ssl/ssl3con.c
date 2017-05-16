@@ -11433,9 +11433,21 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         else
             ss->ssl3.hs.finishedMsgs.tFinished[0] = tlsFinished;
         ss->ssl3.hs.finishedBytes = sizeof(tlsFinished);
-        if (rv != SECSuccess ||
-            0 != NSS_SecureMemcmp(&tlsFinished, b,
+        if (rv == SECSuccess) {  /* ssl3_ComputeTLSFinished was successul */
+            rv = SECFailure;
+            if (ss->finishedMACCallback) {
+                rv = ss->finishedMACCallback(ss, (const TLSFinished *)b,
+                &tlsFinished);
+            }
+            /* If the callback failed or did not exist, check for exact
+             * match */
+            if (rv == SECFailure &&
+                        0 == NSS_SecureMemcmp(&tlsFinished, b,
                                   PR_MIN(length, ss->ssl3.hs.finishedBytes))) {
+                    rv = SECSuccess;
+            }
+        }
+        if (rv != SECSuccess) {
 #ifndef UNSAFE_FUZZER_MODE
             (void)SSL3_SendAlert(ss, alert_fatal, decrypt_error);
             PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
