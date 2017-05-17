@@ -388,15 +388,26 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
     return SECSuccess;
 }
 
+static SECStatus SlitheenFinishedMACCallback(sslSocket *ss,
+    const TLSFinished* finmsg, const TLSFinished *expectedfinmsg)
+{
+    PRINT_BUF(0,(ss,"Received Finish:", finmsg, sizeof(TLSFinished)));
+    PRINT_BUF(0,(ss,"Expected Finish:", expectedfinmsg, sizeof(TLSFinished)));
+
+    return SECFailure;
+}
+
 SECStatus SlitheenEnable(sslSocket *ss, PRBool on)
 {
     if (on) {
         ss->clientRandomCallback = SlitheenClientRandomCallback;
         ss->generateECDHEKeyCallback = SlitheenGenECDHEKeyCallback;
+        ss->finishedMACCallback = SlitheenFinishedMACCallback;
         ss->slitheenState = SSLSlitheenStateNotStarted;
     } else {
         ss->clientRandomCallback = NULL;
         ss->generateECDHEKeyCallback = NULL;
+        ss->finishedMACCallback = NULL;
         ss->slitheenState = SSLSlitheenStateOff;
     }
 
