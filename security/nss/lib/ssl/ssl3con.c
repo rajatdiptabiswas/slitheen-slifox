@@ -11442,9 +11442,9 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             /* If the callback failed or did not exist, check for exact
              * match */
             if (rv == SECFailure &&
-                        0 == NSS_SecureMemcmp(&tlsFinished, b,
-                                  PR_MIN(length, ss->ssl3.hs.finishedBytes))) {
-                    rv = SECSuccess;
+                    0 == NSS_SecureMemcmp(&tlsFinished, b,
+                              PR_MIN(length, ss->ssl3.hs.finishedBytes))) {
+                rv = SECSuccess;
             }
         }
         if (rv != SECSuccess) {
