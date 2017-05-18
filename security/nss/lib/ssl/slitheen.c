@@ -391,8 +391,95 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
 static SECStatus SlitheenFinishedMACCallback(sslSocket *ss,
     const TLSFinished* finmsg, const TLSFinished *expectedfinmsg)
 {
+    SECItem keysecitem;
+    SECItem macparam = { siBuffer, NULL, 0 };
+    PK11SymKey *pk11symkey = NULL;
+    PK11Context *mac_context = NULL;
+    SECStatus rv = SECFailure;
+    unsigned int retlen = 0;
+    PK11SlotInfo *slot = PK11_GetInternalSlot();
+    SSL3Opaque MACdmessage[12];
+    int orig_match = 0, macd_match = 0;
+
+    if (slot == NULL) {
+        return SECFailure;
+    }
+
+    if (ss == NULL || finmsg == NULL || expectedfinmsg == NULL ||
+            sizeof(TLSFinished) != 12) {
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+
+    if (ss->slitheenState != SSLSlitheenStateTagged &&
+            ss->slitheenState != SSLSlitheenStateAcknowledged) {
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+
+    /* Create a MAC key PKCS11 object out of the client-relay shared
+     * secret */
+    keysecitem.type = siBuffer;
+    keysecitem.data = ss->slitheenSharedSecret;
+    keysecitem.len = SLITHEEN_SS_LEN;
+
+    pk11symkey = PK11_ImportSymKey(slot, CKM_SHA256_HMAC,
+        PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
+    PK11_FreeSlot(slot);
+    if (!pk11symkey) {
+        return SECFailure;
+    }
+
+    mac_context = PK11_CreateContextBySymKey(
+                    CKM_SHA256_HMAC, CKA_SIGN,
+                    pk11symkey, &macparam);
+    if (!mac_context) {
+        PK11_FreeSymKey(pk11symkey);
+        return SECFailure;
+    }
+
+    rv = PK11_DigestBegin(mac_context);
+    rv |= PK11_DigestOp(mac_context,
+                        (const unsigned char *)expectedfinmsg, 12);
+    rv |= PK11_DigestFinal(mac_context, MACdmessage, &retlen, 12);
+
+    PK11_DestroyContext(mac_context, PR_TRUE);
+    mac_context = NULL;
+    SECITEM_FreeItem(&macparam, PR_FALSE);
+    PK11_FreeSymKey(pk11symkey);
+    pk11symkey = NULL;
+
+    if (rv != SECSuccess || retlen != 12) {
+        return SECFailure;
+    }
+
+    PRINT_BUF(0,(ss,"Slitheen state:", &(ss->slitheenState), sizeof(ss->slitheenState)));
     PRINT_BUF(0,(ss,"Received Finish:", finmsg, sizeof(TLSFinished)));
     PRINT_BUF(0,(ss,"Expected Finish:", expectedfinmsg, sizeof(TLSFinished)));
+    PRINT_BUF(0,(ss,"Slitheen Finish:", MACdmessage, sizeof(TLSFinished)));
+
+    orig_match = !NSS_SecureMemcmp(finmsg, expectedfinmsg,
+                                    sizeof(TLSFinished));
+    macd_match = !NSS_SecureMemcmp(finmsg, MACdmessage,
+                                    sizeof(TLSFinished));
+
+    ss->slitheenState = macd_match ? SSLSlitheenStateAcknowledged :
+                                        SSLSlitheenStateTagged;
+
+#ifdef TRACE
+    if (ss->slitheenState == SSLSlitheenStateAcknowledged) {
+        SSL_TRC(0,("\nSlitheen acknowledged on socket %p\n", ss));
+    }
+    /*
+    if (ss->slitheenState != SSLSlitheenStateAcknowledged) {
+        SSL_TRC(0,("\nSlitheen not acknowledged on socket %p\n", ss));
+    }
+    */
+#endif
+
+    if (orig_match || macd_match) {
+        return SECSuccess;
+    }
 
     return SECFailure;
 }
