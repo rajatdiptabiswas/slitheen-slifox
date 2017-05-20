@@ -440,6 +440,8 @@ static SECStatus SlitheenFinishedMACCallback(sslSocket *ss,
 
     rv = PK11_DigestBegin(mac_context);
     rv |= PK11_DigestOp(mac_context,
+                        (const unsigned char *)"SLITHEEN_FINISHED", 17);
+    rv |= PK11_DigestOp(mac_context,
                         (const unsigned char *)expectedfinmsg, 12);
     rv |= PK11_DigestFinal(mac_context, MACdmessage, &retlen, 12);
 
