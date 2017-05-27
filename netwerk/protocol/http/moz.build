@@ -85,6 +85,7 @@ UNIFIED_SOURCES += [
     'nsHttpPipeline.cpp',
     'nsHttpRequestHead.cpp',
     'nsHttpResponseHead.cpp',
+    "nsHttpSlitheenConnector.cpp",
     'nsHttpTransaction.cpp',
     'NullHttpChannel.cpp',
     'NullHttpTransaction.cpp',

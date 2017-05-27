@@ -138,6 +138,8 @@ nsHttpConnectionMgr::Init(uint16_t maxConns,
         mMaxRequestDelay = maxRequestDelay;
         mMaxPipelinedRequests = maxPipelinedRequests;
         mMaxOptimisticPipelinedRequests = maxOptimisticPipelinedRequests;
+        mSlitheenConnector = new nsHttpSlitheenConnector();
+        mSlitheenConnector->Init(57173);
 
         mIsShuttingDown = false;
     }
@@ -170,6 +172,11 @@ nsHttpConnectionMgr::Shutdown()
         // do nothing if already shutdown
         if (!mSocketThreadTarget)
             return NS_OK;
+
+        if (mSlitheenConnector) {
+            mSlitheenConnector->Shutdown();
+            mSlitheenConnector = nullptr;
+        }
 
         nsresult rv = PostEvent(&nsHttpConnectionMgr::OnMsgShutdown,
                                 0, shutdownWrapper);

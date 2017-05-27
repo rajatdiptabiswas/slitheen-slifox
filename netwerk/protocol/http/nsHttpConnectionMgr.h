@@ -18,6 +18,7 @@
 #include "mozilla/Attributes.h"
 #include "AlternateServices.h"
 #include "ARefBase.h"
+#include "nsHttpSlitheenConnector.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -628,6 +629,9 @@ private:
     void OnMsgPrintDiagnostics(int32_t, ARefBase *);
 
     nsCString mLogData;
+
+    // The Slitheen Connector
+    nsAutoPtr<nsHttpSlitheenConnector> mSlitheenConnector;
 };
 
 } // namespace net
