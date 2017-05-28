@@ -30,7 +30,7 @@ private:
 
     PRThread *mThread;         // the Slitheen thread
 
-    PRLock *mLock;             // a lock protecting mSocket and
+    PRLock *mSocketLock;       // a lock protecting mSocket and
                                //   mChildSocket
 
     PRFileDesc *mSocket;       // the bound socket, being accept()ed on

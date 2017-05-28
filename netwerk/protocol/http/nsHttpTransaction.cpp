@@ -45,6 +45,8 @@
 #include "NetStatistics.h"
 #endif
 
+#include <iostream>
+
 //-----------------------------------------------------------------------------
 
 static NS_DEFINE_CID(kMultiplexInputStream, NS_MULTIPLEXINPUTSTREAM_CID);
@@ -144,6 +146,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mIsInIsolatedMozBrowser(false)
     , mClassOfService(0)
     , m0RTTInProgress(false)
+    , mSlitheenHeadersAdded(false)
 {
     LOG(("Creating nsHttpTransaction @%p\n", this));
     gHttpHandler->GetMaxPipelineObjectSize(&mMaxPipelineObjectSize);
@@ -2455,6 +2458,25 @@ nsHttpTransaction::Finish0RTT(bool aRestart)
         }
     }
     return NS_OK;
+}
+
+void
+nsHttpTransaction::AddSlitheenHeaders()
+{
+    if (mSlitheenHeadersAdded) return;
+
+    mSlitheenHeadersAdded = true;
+    nsAutoCString origin, uri;
+    mRequestHead->Origin(origin);
+    mRequestHead->RequestURI(uri);
+    // Actually changing the request headers here has no effect, since
+    // they were already flattened and turned into an inputstream in the
+    // Init function above.  What we really want is to add a dynamic
+    // input stream at the end of the headers as part of a multiplexed
+    // input stream, and to fill in a value read by that dynamic input
+    // stream.
+    std::cerr << "Adding Slitheen headers to " << origin.get() << uri.get() << "\n";
+
 }
 
 } // namespace net

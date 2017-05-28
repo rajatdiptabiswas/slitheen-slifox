@@ -2733,3 +2733,22 @@ nsSSLIOLayerAddToSocket(int32_t family,
   }
   return NS_ERROR_FAILURE;
 }
+
+NS_IMETHODIMP
+nsNSSSocketInfo::SlitheenUsable(bool *retval)
+{
+    PRBool ret = false;
+
+    if (!mFd) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    if (SECSuccess != SSL_OptionGet(mFd, SSL_USABLE_SLITHEEN, &ret)) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    // Convert from PRBool to bool
+    *retval = (ret ? true : false);
+
+    return NS_OK;
+}

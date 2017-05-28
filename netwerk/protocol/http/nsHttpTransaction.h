@@ -169,6 +169,8 @@ public:
 
     bool Do0RTT() override;
     nsresult Finish0RTT(bool aRestart) override;
+
+    void AddSlitheenHeaders() override;
 private:
     friend class DeleteHttpTransaction;
     virtual ~nsHttpTransaction();
@@ -479,6 +481,8 @@ private:
     NetAddr                         mPeerAddr;
 
     bool                            m0RTTInProgress;
+
+    bool                            mSlitheenHeadersAdded;
 };
 
 } // namespace net

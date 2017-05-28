@@ -10,7 +10,7 @@
 #ifndef __sslimpl_h_
 #define __sslimpl_h_
 
-#define DEBUG 1
+// #define DEBUG 1
 
 #ifdef DEBUG
 #undef NDEBUG
@@ -1823,7 +1823,7 @@ SECStatus ssl3_ComputeHandshakeHashes(sslSocket *ss,
                                       ssl3CipherSpec *spec,
                                       SSL3Hashes *hashes,
                                       PRUint32 sender);
-SECStatus ssl_CreateECDHEphemeralKeyPair(sslSocket *ss,
+SECStatus ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
                                          const sslNamedGroupDef *ecGroup,
                                          sslEphemeralKeyPair **keyPair);
 SECStatus ssl_CreateStaticECDHEKey(sslSocket *ss,

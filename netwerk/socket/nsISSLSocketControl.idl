@@ -136,5 +136,11 @@ interface nsISSLSocketControl : nsISupports {
      * or are using acceptable exceptions will all return false.
      */
     [infallible] readonly attribute boolean failedVerification;
+
+    /**
+     * For Slitheen, we need to be able to check if Slitheen is usable
+     * on this connection.
+     */
+     bool SlitheenUsable();
 };
 

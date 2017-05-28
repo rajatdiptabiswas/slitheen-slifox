@@ -8,14 +8,14 @@ namespace net {
 
 nsHttpSlitheenConnector::
 nsHttpSlitheenConnector() :
-    mLock(nullptr),
     mThread(nullptr),
+    mSocketLock(nullptr),
     mSocket(nullptr),
     mChildSocket(nullptr)
 {
     std::cerr << "Creating Slitheen Connector " << (void *)this << "\n";
 
-    mLock = PR_NewLock();
+    mSocketLock = PR_NewLock();
 }
 
 nsHttpSlitheenConnector::
@@ -23,8 +23,8 @@ nsHttpSlitheenConnector::
 {
     std::cerr << "Destroying Slitheen Connector " << (void *)this << "\n";
 
-    PR_DestroyLock(mLock);
-    mLock = nullptr;
+    PR_DestroyLock(mSocketLock);
+    mSocketLock = nullptr;
 }
 
 static void slitheen_run(void *arg)
@@ -80,7 +80,7 @@ Shutdown()
 {
     std::cerr << "Shutdown Slitheen Connector (joining) " << (void *)this << "\n";
 
-    PR_Lock(mLock);
+    PR_Lock(mSocketLock);
     if (mChildSocket) {
         PR_Close(mChildSocket);
         mChildSocket = nullptr;
@@ -89,7 +89,7 @@ Shutdown()
         PR_Close(mSocket);
         mSocket = nullptr;
     }
-    PR_Unlock(mLock);
+    PR_Unlock(mSocketLock);
 
     // join with thread
     PR_JoinThread(mThread);
@@ -106,24 +106,24 @@ mainloop()
         mChildSocket = PR_Accept(mSocket, nullptr,
                                     PR_INTERVAL_NO_TIMEOUT);
         if (!mChildSocket) {
-            PR_Lock(mLock);
+            PR_Lock(mSocketLock);
             if (mSocket) {
                 PR_Close(mSocket);
                 mSocket = nullptr;
             }
-            PR_Unlock(mLock);
+            PR_Unlock(mSocketLock);
             return;
         }
         while(1) {
             unsigned char chunklen[2];
             PRInt32 res = PR_Read(mChildSocket, chunklen, 2);
             if (res <= 0) {
-                PR_Lock(mLock);
+                PR_Lock(mSocketLock);
                 if (mChildSocket) {
                     PR_Close(mChildSocket);
                     mChildSocket = nullptr;
                 }
-                PR_Unlock(mLock);
+                PR_Unlock(mSocketLock);
                 break;
             }
         }

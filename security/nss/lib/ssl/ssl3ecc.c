@@ -470,7 +470,7 @@ ssl_GetECGroupForServerSocket(sslSocket *ss)
 
 /* Create an ECDHE key pair for a given curve */
 SECStatus
-ssl_CreateECDHEphemeralKeyPair(sslSocket *ss,
+ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
                                const sslNamedGroupDef *ecGroup,
                                sslEphemeralKeyPair **keyPair)
 {

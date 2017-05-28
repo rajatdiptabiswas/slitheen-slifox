@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 
 #endif  /* SLITHEEN_TAG_TESTING */
 
-static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
+static SECStatus SlitheenGenECDHEKeyCallback(const sslSocket *ss,
         unsigned int group_bits, SECKEYECParams *ecParams,
         SECKEYPublicKey **pubKey, SECKEYPrivateKey **privKey)
 {
@@ -334,7 +334,7 @@ static SECStatus SlitheenGenECDHEKeyCallback(sslSocket *ss,
     /* Create a MAC key PKCS11 object out of the client-relay shared
      * secret */
     keysecitem.type = siBuffer;
-    keysecitem.data = ss->slitheenSharedSecret;
+    keysecitem.data = (unsigned char *)(ss->slitheenSharedSecret);
     keysecitem.len = SLITHEEN_SS_LEN;
 
     pk11symkey = PK11_ImportSymKey(slot, CKM_SHA256_HMAC,

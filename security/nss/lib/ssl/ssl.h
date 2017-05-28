@@ -1356,6 +1356,7 @@ SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
  * Called from ssl3_SendClientHello().
  */
 typedef struct sslSocketStr *sslSocketPtr;
+typedef const struct sslSocketStr *sslSocketConstPtr;
 typedef struct SSL3RandomStr *SSL3RandomPtr;
 typedef SECStatus(PR_CALLBACK *SSLClientRandomCallback)(
     sslSocketPtr ss, SSL3RandomPtr r);
@@ -1367,7 +1368,7 @@ typedef SECStatus(PR_CALLBACK *SSLClientRandomCallback)(
  * ssl_CreateECDHEphemeralKeyPair().
  */
 typedef SECStatus(PR_CALLBACK *SSLGenerateECDHEKeyCallback)(
-    sslSocketPtr ss, unsigned int group_bits, SECKEYECParams *ecParams,
+    sslSocketConstPtr ss, unsigned int group_bits, SECKEYECParams *ecParams,
     SECKEYPublicKey **pubKey, SECKEYPrivateKey **privKey);
 
 /* Applications that wish to be able to accept different Finished MACs

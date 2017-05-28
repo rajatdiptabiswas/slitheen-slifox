@@ -220,6 +220,11 @@ public:
     virtual nsresult Finish0RTT(bool aRestart) {
         return NS_ERROR_NOT_IMPLEMENTED;
     }
+
+    // Call this function to add Slitheen headers to the transaction.
+    // Calling this function multiple times on the same transaction is
+    // safe; the function is idempotent.
+    virtual void AddSlitheenHeaders() { }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpTransaction, NS_AHTTPTRANSACTION_IID)
