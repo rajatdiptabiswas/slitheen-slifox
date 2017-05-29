@@ -1734,6 +1734,7 @@ public:
 
     explicit ConnectionHandle(nsHttpConnection *conn) : mConn(conn) { }
     void Reset() { mConn = nullptr; }
+    bool SlitheenUsable() { return mConn ? mConn->SlitheenUsable() : false; }
 private:
     virtual ~ConnectionHandle();
     RefPtr<nsHttpConnection> mConn;

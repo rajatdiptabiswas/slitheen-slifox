@@ -1786,39 +1786,39 @@ nsHttpConnection::OnSocketWritable()
     return rv;
 }
 
+bool
+nsHttpConnection::SlitheenUsable()
+{
+    // Check whether we should be adding Slitheen headers
+
+    nsresult rv;
+    nsCOMPtr<nsISupports> securityInfo;
+    nsCOMPtr<nsISSLSocketControl> ssl;
+
+    GetSecurityInfo(getter_AddRefs(securityInfo));
+    if (!securityInfo) {
+        return false;
+    }
+
+    ssl = do_QueryInterface(securityInfo, &rv);
+    if (NS_FAILED(rv)) {
+        return false;
+    }
+
+    bool slitheenusable;
+    rv = ssl->SlitheenUsable(&slitheenusable);
+    if (NS_FAILED(rv)) {
+        return false;
+    }
+
+    return slitheenusable;
+}
+
 nsresult
 nsHttpConnection::OnWriteSegment(char *buf,
                                  uint32_t count,
                                  uint32_t *countWritten)
 {
-    // Check whether we should be adding Slitheen headers
-    {
-        nsresult rv;
-        nsCOMPtr<nsISupports> securityInfo;
-        nsCOMPtr<nsISSLSocketControl> ssl;
-
-        GetSecurityInfo(getter_AddRefs(securityInfo));
-        if (!securityInfo) {
-            goto skipSlitheen;
-        }
-
-        ssl = do_QueryInterface(securityInfo, &rv);
-        if (NS_FAILED(rv))
-            goto skipSlitheen;
-
-        bool slitheenusable;
-        ssl->SlitheenUsable(&slitheenusable);
-
-        if (slitheenusable) {
-            if (mTransaction) {
-                // Calling this multiple times on the same transaction
-                // is harmless
-                mTransaction->AddSlitheenHeaders();
-            }
-        }
-    }
-skipSlitheen:
-
     if (count == 0) {
         // some WriteSegments implementations will erroneously call the reader
         // to provide 0 bytes worth of data.  we must protect against this case

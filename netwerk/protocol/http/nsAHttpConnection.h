@@ -151,6 +151,11 @@ public:
 
     // nsHttp.h version
     virtual uint32_t Version() = 0;
+
+    // Call this function to check if Slitheen is usable for this
+    // connection.  This function is overridden by nsHttpConnection and
+    // ConnectionHandle (the latter is in nsHttpConnectionMgr.cpp)
+    virtual bool SlitheenUsable() { return false; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)

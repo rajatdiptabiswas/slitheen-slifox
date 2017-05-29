@@ -218,6 +218,8 @@ public:
     // override of nsAHttpConnection
     virtual uint32_t Version();
 
+    virtual bool SlitheenUsable();
+
 private:
     // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
     enum TCPKeepaliveConfig {
