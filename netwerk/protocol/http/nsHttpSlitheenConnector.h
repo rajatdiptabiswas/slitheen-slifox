@@ -1,6 +1,8 @@
 #ifndef nsHttpSlitheenConnector_h__
 #define nsHttpSlitheenConnector_h__
 
+#include <queue>
+
 #include "prthread.h"
 
 namespace mozilla {
@@ -25,8 +27,17 @@ public:
 
     void mainloop();
 
+    //-------------------------------------------------------------------------
+    // NOTE: functions below are called from any thread
+    //-------------------------------------------------------------------------
+    static nsHttpSlitheenConnector *getInstance() { return smConnector; }
+
 private:
     virtual ~nsHttpSlitheenConnector();
+
+    // There's only one Slitheen Connector; various classes have to talk
+    // to it, so we keep a pointer to it in this static member.
+    static nsHttpSlitheenConnector *smConnector;
 
     PRThread *mThread;         // the Slitheen thread
 
@@ -36,6 +47,15 @@ private:
     PRFileDesc *mSocket;       // the bound socket, being accept()ed on
     PRFileDesc *mChildSocket;  // the accepted socket; we only have one
                                //   active connection at a time
+
+    PRLock *mUpstreamLock;     // a lock protecting mSlitheenID and
+                               //   mUpstreamQueue
+
+    nsCString mSlitheenID;     // the Slitheen ID, provided by the
+                               //   Slitheen SOCKS proxy
+    std::queue<nsCString> mUpstreamQueue;
+                               // a queue of the upstream chunks,
+                               //   provided by the Slitheen SOCKS proxy
 
     friend class nsAutoPtr<nsHttpSlitheenConnector>; // needs to call the destructor
 };
