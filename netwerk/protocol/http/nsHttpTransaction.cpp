@@ -319,6 +319,18 @@ ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
     return mInputStream->ReadSegments(aWriter, aClosure, aCount, aResult);
 }
 
+NS_IMETHODIMP
+SlitheenHeaderInputStream::
+IsNonBlocking(bool* aNonBlocking)
+{
+    *aNonBlocking = true;
+
+    return NS_OK;
+}
+
+// Not part of the class, but a factory to create an instance of the
+// class
+static
 nsresult
 NewSlitheenHeaderInputStream(nsIInputStream** aStreamResult,
         nsHttpTransaction *trans)
@@ -329,15 +341,6 @@ NewSlitheenHeaderInputStream(nsIInputStream** aStreamResult,
         new SlitheenHeaderInputStream(trans);
 
     stream.forget(aStreamResult);
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-SlitheenHeaderInputStream::
-IsNonBlocking(bool* aNonBlocking)
-{
-    *aNonBlocking = true;
-
     return NS_OK;
 }
 
