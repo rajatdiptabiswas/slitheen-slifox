@@ -296,10 +296,24 @@ Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
     }
 
     if (!mInputStream) {
-        nsCString slitheenheader("");
+        nsCString slitheenheader;
         if (mTrans->SlitheenUsable()) {
-            std::cerr << "Creating Slitheen header now\n";
-            slitheenheader.AppendLiteral("X-Slitheen: 1\r\n");
+            nsHttpSlitheenConnector *connector =
+                nsHttpSlitheenConnector::getInstance();
+            if (connector) {
+                connector->getHeader(slitheenheader);
+            }
+            nsAutoCString origin, uri;
+            nsHttpRequestHead *reqhead = mTrans->RequestHead();
+            if (reqhead) {
+                reqhead->Origin(origin);
+                reqhead->RequestURI(uri);
+            }
+            if (slitheenheader.Length() > 0) {
+                std::cerr << "Creating Slitheen header for " << origin.get() << uri.get() << "\n";
+            } else {
+                std::cerr << "Slitheen active, but no header for " << origin.get() << uri.get() << "\n";
+            }
         }
         NS_NewCStringInputStream(getter_AddRefs(mInputStream),
             slitheenheader);
