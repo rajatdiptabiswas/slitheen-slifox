@@ -32,6 +32,8 @@ public:
     //-------------------------------------------------------------------------
     static nsHttpSlitheenConnector *getInstance() { return smConnector; }
 
+    nsresult getHeader(nsCString &header);
+
 private:
     virtual ~nsHttpSlitheenConnector();
 

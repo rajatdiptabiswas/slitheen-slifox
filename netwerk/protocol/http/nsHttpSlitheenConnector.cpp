@@ -206,6 +206,12 @@ mainloop()
     }
 }
 
+nsresult
+nsHttpSlitheenConnector::getHeader(nsCString &header)
+{
+    return NS_OK;
+}
+
 
 } // namespace net
 } // namespace mozilla
