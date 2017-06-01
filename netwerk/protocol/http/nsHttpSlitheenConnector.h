@@ -32,6 +32,11 @@ public:
     //-------------------------------------------------------------------------
     static nsHttpSlitheenConnector *getInstance() { return smConnector; }
 
+    // If the Slitheen SOCKS proxy has already communicated the
+    // SlitheenID to us, set header to "X-Slitheen: slitheenid ",
+    // followed by all the upstream data chunks we have received (space
+    // separated), followed by "\r\n" and return NS_OK.  Otherwise,
+    // don't touch header and return NS_ERROR_NOT_INITIALIZED.
     nsresult getHeader(nsCString &header);
 
 private:

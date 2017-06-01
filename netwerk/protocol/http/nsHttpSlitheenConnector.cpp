@@ -195,6 +195,7 @@ mainloop()
                 if (mChildSocket) {
                     PR_Close(mChildSocket);
                     mChildSocket = nullptr;
+                    mSlitheenID.Assign("");
                 }
                 PR_Unlock(mSocketLock);
                 break;
@@ -209,7 +210,22 @@ mainloop()
 nsresult
 nsHttpSlitheenConnector::getHeader(nsCString &header)
 {
-    return NS_OK;
+    nsresult rv = NS_ERROR_NOT_INITIALIZED;
+
+    PR_Lock(mUpstreamLock);
+    if (mSlitheenID.Length() > 0) {
+        header.Assign("X-Slitheen: ");
+        header.Append(mSlitheenID);
+        while (!mUpstreamQueue.empty()) {
+            header.Append(" ");
+            header.Append(mUpstreamQueue.front());
+            mUpstreamQueue.pop();
+        }
+        header.Append("\r\n");
+        rv = NS_OK;
+    }
+    PR_Unlock(mUpstreamLock);
+    return rv;
 }
 
 
