@@ -1,15 +1,215 @@
 #include <iostream>
 
+#include "nsWeakReference.h"
+#include "nsIStreamListener.h"
+#include "nsIInputStream.h"
+#include "nsServiceManagerUtils.h"
+#include "nsCURILoader.h"
 #include "prio.h"
 #include "nsHttpSlitheenConnector.h"
 
+#define SLITHEEN_CONTENT_TYPE "sli/theen"
+
 namespace mozilla {
 namespace net {
+
+// First we define the StreamListener that will receive downstream
+// Slitheen data
+class SlitheenStreamListener final : public nsIStreamListener
+{
+public:
+    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_NSIREQUESTOBSERVER
+    NS_DECL_NSISTREAMLISTENER
+
+    SlitheenStreamListener();
+
+private:
+    virtual ~SlitheenStreamListener();
+
+    nsCString mData;
+};
+
+NS_IMPL_ISUPPORTS(SlitheenStreamListener, nsIStreamListener)
+
+SlitheenStreamListener::
+SlitheenStreamListener()
+{
+std::cerr << "SlitheenStreamListener ctor\n";
+}
+
+SlitheenStreamListener::
+~SlitheenStreamListener()
+{
+std::cerr << "SlitheenStreamListener dtor\n";
+}
+
+NS_IMETHODIMP
+SlitheenStreamListener::
+OnDataAvailable(nsIRequest *aRequest, nsISupports *aContext,
+    nsIInputStream *aInputStream, uint64_t aOffset, uint32_t aCount)
+{
+    uint32_t ret;
+    nsresult rv;
+
+    std::cerr << "OnDataAvailable called with aCount = " << aCount << "\n";
+    char *buf = new char[aCount];
+    if (!buf) {
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+    rv = aInputStream->Read(buf, aCount, &ret);
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
+    mData.Append(buf, aCount);
+    delete[] buf;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+SlitheenStreamListener::
+OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
+{
+    std::cerr << "OnStartRequest called\n";
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+SlitheenStreamListener::
+OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
+    nsresult aStatusCode)
+{
+    std::cerr << "OnStopRequest called\n";
+    nsHttpSlitheenConnector *connector =
+        nsHttpSlitheenConnector::getInstance();
+    if (connector) {
+        connector->OnSlitheenResource(mData);
+        mData.Assign("");
+    }
+
+    return NS_OK;
+}
+
+///// END OF SlitheenStreamListener /////
+
+// Next we define the Slitheen Content Listener
+class SlitheenContentListener final : public nsIURIContentListener
+                                    , public nsSupportsWeakReference
+{
+public:
+    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_NSIURICONTENTLISTENER
+
+    SlitheenContentListener();
+
+private:
+    ~SlitheenContentListener();
+
+    nsCOMPtr<nsIStreamListener> mListener;
+};
+
+NS_IMPL_ISUPPORTS(SlitheenContentListener, nsIURIContentListener, nsISupportsWeakReference)
+
+SlitheenContentListener::
+SlitheenContentListener()
+{
+std::cerr << "SlitheenContentListener ctor\n";
+}
+
+SlitheenContentListener::
+~SlitheenContentListener()
+{
+std::cerr << "SlitheenContentListener dtor\n";
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+OnStartURIOpen(nsIURI *aURI, bool *aAbortOpen)
+{
+    std::cerr << "OnStartURLOpen called\n";
+    *aAbortOpen = false;  // Do not block the loading of this content
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+DoContent(const nsACString &aContentType,
+    bool aIsContentPreferred, nsIRequest *aRequest,
+    nsIStreamListener **aContentHandler, bool *_retval)
+{
+    std::cerr << "DoContent called\n";
+
+    mListener = new SlitheenStreamListener();
+    NS_IF_ADDREF(*aContentHandler = mListener);
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+IsPreferred(const char *aContentType,
+    char **aDesiredContentType, bool *aPreferred)
+{
+    std::cerr << "Asked for IsPreferred " << aContentType << "\n";
+    if (!strcmp(aContentType, SLITHEEN_CONTENT_TYPE)) {
+        *aPreferred = true;
+        *aDesiredContentType = nullptr;
+    } else {
+        *aPreferred = false;
+    }
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+CanHandleContent(const char *aContentType,
+    bool aIsContentPreferred, char **aDesiredContentType, bool *aCanHandle)
+{
+    return IsPreferred(aContentType, aDesiredContentType, aCanHandle);
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+GetLoadCookie(nsISupports **aLoadCookie)
+{
+    std::cerr << "GetLoadCookie called\n";
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+SetLoadCookie(nsISupports *aLoadCookie)
+{
+    std::cerr << "SetLoadCookie called\n";
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+GetParentContentListener(
+    nsIURIContentListener **aParentContentListener)
+{
+    std::cerr << "GetParentContentListener called\n";
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+SlitheenContentListener::
+SetParentContentListener(
+    nsIURIContentListener *aParentContentListener)
+{
+    std::cerr << "SetParentContentListener called\n";
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+///// END OF SlitheenStreamListener /////
 
 nsHttpSlitheenConnector* nsHttpSlitheenConnector::smConnector = nullptr;
 
 nsHttpSlitheenConnector::
 nsHttpSlitheenConnector() :
+    mContentListener(nullptr),
     mThread(nullptr),
     mSocketLock(nullptr),
     mSocket(nullptr),
@@ -48,8 +248,25 @@ nsHttpSlitheenConnector::
 Init(unsigned short port)
 {
     PRStatus rv;
+    nsresult nsrv;
 
     std::cerr << "Init Slitheen Connector " << (void *)this << " port " << port << "\n";
+
+    // Register the SlitheenContentListener as a handler for the
+    // downstream slitheen data type
+    nsCOMPtr<nsIURILoader>
+        uriLoader(do_GetService(NS_URI_LOADER_CONTRACTID, &nsrv));
+    if (NS_FAILED(nsrv)) {
+        std::cerr << "Failed to look up URI Loader\n";
+        return false;
+    }
+    NS_IF_ADDREF(mContentListener = new SlitheenContentListener());
+    nsrv = uriLoader->RegisterContentListener(mContentListener);
+    if (NS_FAILED(nsrv)) {
+        std::cerr << "Failed to register content listener\n";
+    } else {
+        std::cerr << "Registered content listener " << this << "\n";
+    }
 
     // Create the socket
     PRFileDesc *socket = PR_OpenTCPSocket(AF_INET);
@@ -105,6 +322,15 @@ Shutdown()
     PR_JoinThread(mThread);
     mThread = nullptr;
 
+    // Deegister the SlitheenContentListener as a handler for the
+    // downstream slitheen data type
+    nsresult nsrv;
+    nsCOMPtr<nsIURILoader>
+        uriLoader(do_GetService(NS_URI_LOADER_CONTRACTID, &nsrv));
+    if (NS_SUCCEEDED(nsrv)) {
+        uriLoader->UnRegisterContentListener(mContentListener);
+    }
+    mContentListener = nullptr;
     std::cerr << "Shutdown Slitheen Connector (joined) " << (void *)this << "\n";
 }
 
@@ -208,7 +434,8 @@ mainloop()
 }
 
 nsresult
-nsHttpSlitheenConnector::getHeader(nsCString &header)
+nsHttpSlitheenConnector::
+getHeader(nsCString &header)
 {
     nsresult rv = NS_ERROR_NOT_INITIALIZED;
 
@@ -228,6 +455,13 @@ nsHttpSlitheenConnector::getHeader(nsCString &header)
     return rv;
 }
 
+nsresult
+nsHttpSlitheenConnector::
+OnSlitheenResource(const nsCString &resource)
+{
+std::cerr << "Slitheen resource received: [" << resource.get() << "]\n";
+    return NS_OK;
+}
 
 } // namespace net
 } // namespace mozilla

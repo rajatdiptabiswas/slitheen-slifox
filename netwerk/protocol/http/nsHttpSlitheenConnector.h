@@ -1,6 +1,8 @@
 #ifndef nsHttpSlitheenConnector_h__
 #define nsHttpSlitheenConnector_h__
 
+#include "nsIURIContentListener.h"
+
 #include <queue>
 
 #include "prthread.h"
@@ -39,12 +41,21 @@ public:
     // don't touch header and return NS_ERROR_NOT_INITIALIZED.
     nsresult getHeader(nsCString &header);
 
+    // Attange to call this when there is a Slitheen downstream resource
+    // available.
+    nsresult OnSlitheenResource(const nsCString &resource);
+
 private:
     virtual ~nsHttpSlitheenConnector();
 
     // There's only one Slitheen Connector; various classes have to talk
     // to it, so we keep a pointer to it in this static member.
     static nsHttpSlitheenConnector *smConnector;
+
+    nsCOMPtr<nsIURIContentListener> mContentListener;
+                               // A wrapper pointer to the
+                               // ContentListener object for handling
+                               // downstream slitheen data
 
     PRThread *mThread;         // the Slitheen thread
 
