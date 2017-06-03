@@ -35,13 +35,13 @@ NS_IMPL_ISUPPORTS(SlitheenStreamListener, nsIStreamListener)
 SlitheenStreamListener::
 SlitheenStreamListener()
 {
-std::cerr << "SlitheenStreamListener ctor\n";
+std::cerr << "SlitheenStreamListener ctor " << this << "\n";
 }
 
 SlitheenStreamListener::
 ~SlitheenStreamListener()
 {
-std::cerr << "SlitheenStreamListener dtor\n";
+std::cerr << "SlitheenStreamListener dtor " << this << "\n";
 }
 
 NS_IMETHODIMP
@@ -113,13 +113,13 @@ NS_IMPL_ISUPPORTS(SlitheenContentListener, nsIURIContentListener, nsISupportsWea
 SlitheenContentListener::
 SlitheenContentListener()
 {
-std::cerr << "SlitheenContentListener ctor\n";
+std::cerr << "SlitheenContentListener ctor " << this << "\n";
 }
 
 SlitheenContentListener::
 ~SlitheenContentListener()
 {
-std::cerr << "SlitheenContentListener dtor\n";
+std::cerr << "SlitheenContentListener dtor " << this << "\n";
 }
 
 NS_IMETHODIMP
@@ -260,7 +260,7 @@ Init(unsigned short port)
         std::cerr << "Failed to look up URI Loader\n";
         return false;
     }
-    NS_IF_ADDREF(mContentListener = new SlitheenContentListener());
+    mContentListener = new SlitheenContentListener();
     nsrv = uriLoader->RegisterContentListener(mContentListener);
     if (NS_FAILED(nsrv)) {
         std::cerr << "Failed to register content listener\n";
@@ -421,7 +421,9 @@ mainloop()
                 if (mChildSocket) {
                     PR_Close(mChildSocket);
                     mChildSocket = nullptr;
+                    PR_Lock(mUpstreamLock);
                     mSlitheenID.Assign("");
+                    PR_Unlock(mUpstreamLock);
                 }
                 PR_Unlock(mSocketLock);
                 break;
@@ -459,7 +461,7 @@ nsresult
 nsHttpSlitheenConnector::
 OnSlitheenResource(const nsCString &resource)
 {
-std::cerr << "Slitheen resource received: [" << resource.get() << "]\n";
+std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
     return NS_OK;
 }
 

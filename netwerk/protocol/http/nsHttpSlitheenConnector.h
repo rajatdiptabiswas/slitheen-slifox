@@ -52,6 +52,11 @@ private:
     // to it, so we keep a pointer to it in this static member.
     static nsHttpSlitheenConnector *smConnector;
 
+    // Note about locks: if you grab more than one, grab them in this
+    // order, and release them in the opposite order:
+    // 1. mSocketLock
+    // 2. mUpstreamLock
+
     nsCOMPtr<nsIURIContentListener> mContentListener;
                                // A wrapper pointer to the
                                // ContentListener object for handling
