@@ -433,17 +433,18 @@ nsHttpSlitheenConnector::
 mainloop()
 {
     while(mSocket != nullptr) {
-        PR_RWLock_Wlock(mSocketLock);
-        mChildSocket = PR_Accept(mSocket, nullptr,
-                                    PR_INTERVAL_NO_TIMEOUT);
-        if (!mChildSocket) {
+        PRFileDesc *childsocket = PR_Accept(mSocket, nullptr,
+                                            PR_INTERVAL_NO_TIMEOUT);
+        if (!childsocket) {
             if (mSocket) {
-                PR_Close(mSocket);
+                PRFileDesc *mastersocket = mSocket;
                 mSocket = nullptr;
+                PR_Close(mastersocket);
             }
-            PR_RWLock_Unlock(mSocketLock);
             return;
         }
+        PR_RWLock_Wlock(mSocketLock);
+        mChildSocket = childsocket;
         PR_RWLock_Unlock(mSocketLock);
 
         // The first string we read is the Slitheen ID
@@ -521,21 +522,19 @@ OnSlitheenResource(const nsCString &resource)
     // proxy is reading fast enough that this won't block (because we're
     // in the socket thread).
     bool ok = false;
-    PR_RWLock_Rlock(mSocketLock);
     if (mChildSocket) {
-        ok = writeString(mChildSocket, resource);
-    }
-    PR_RWLock_Unlock(mSocketLock);
-    if (!ok) {
-        PR_RWLock_Wlock(mSocketLock);
+        PR_RWLock_Rlock(mSocketLock);
+        // mChildSocket may have changed by the time we get the lock
         if (mChildSocket) {
-            PR_Close(mChildSocket);
-            mChildSocket = nullptr;
-            PR_RWLock_Wlock(mUpstreamLock);
-            mSlitheenID.Assign("");
-            PR_RWLock_Unlock(mUpstreamLock);
+            ok = writeString(mChildSocket, resource);
         }
         PR_RWLock_Unlock(mSocketLock);
+    }
+    if (!ok) {
+        // The read side of the socket should fail as well, so we'll let
+        // that side handle closing and resetting the socket.  For now,
+        // this resource will just be lost.
+        std::cerr << "Slitheen resource lost due to error writing to SOCKS proxy\n";
     }
     return NS_OK;
 }
