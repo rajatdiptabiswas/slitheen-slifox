@@ -5,6 +5,7 @@
 
 #include <queue>
 
+#include "prrwlock.h"
 #include "prthread.h"
 
 namespace mozilla {
@@ -64,14 +65,13 @@ private:
 
     PRThread *mThread;         // the Slitheen thread
 
-    PRLock *mSocketLock;       // a lock protecting mSocket and
-                               //   mChildSocket
+    PRRWLock *mSocketLock;     // a lock protecting mChildSocket
 
     PRFileDesc *mSocket;       // the bound socket, being accept()ed on
     PRFileDesc *mChildSocket;  // the accepted socket; we only have one
                                //   active connection at a time
 
-    PRLock *mUpstreamLock;     // a lock protecting mSlitheenID and
+    PRRWLock *mUpstreamLock;   // a lock protecting mSlitheenID and
                                //   mUpstreamQueue
 
     nsCString mSlitheenID;     // the Slitheen ID, provided by the

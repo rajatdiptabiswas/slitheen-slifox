@@ -218,8 +218,8 @@ nsHttpSlitheenConnector() :
 {
     // std::cerr << "Creating Slitheen Connector " << (void *)this << "\n";
 
-    mSocketLock = PR_NewLock();
-    mUpstreamLock = PR_NewLock();
+    mSocketLock = PR_NewRWLock(0, "SocketLock");
+    mUpstreamLock = PR_NewRWLock(1, "UpstreamLock");
 
     smConnector = this;
 }
@@ -231,9 +231,9 @@ nsHttpSlitheenConnector::
 
     smConnector = nullptr;
 
-    PR_DestroyLock(mSocketLock);
+    PR_DestroyRWLock(mSocketLock);
     mSocketLock = nullptr;
-    PR_DestroyLock(mUpstreamLock);
+    PR_DestroyRWLock(mUpstreamLock);
     mUpstreamLock = nullptr;
 }
 
@@ -307,16 +307,18 @@ Shutdown()
 {
     // std::cerr << "Shutdown Slitheen Connector (joining) " << (void *)this << "\n";
 
-    PR_Lock(mSocketLock);
-    if (mChildSocket) {
-        PR_Close(mChildSocket);
-        mChildSocket = nullptr;
-    }
     if (mSocket) {
         PR_Close(mSocket);
         mSocket = nullptr;
     }
-    PR_Unlock(mSocketLock);
+    if (mChildSocket) {
+        PR_Close(mChildSocket);  // This will cause the reader to stop
+                                 // listening on the socket and release
+                                 // its reader lock
+        PR_RWLock_Wlock(mSocketLock);
+        mChildSocket = nullptr;
+        PR_RWLock_Unlock(mSocketLock);
+    }
 
     // join with thread
     PR_JoinThread(mThread);
@@ -431,51 +433,59 @@ nsHttpSlitheenConnector::
 mainloop()
 {
     while(mSocket != nullptr) {
+        PR_RWLock_Wlock(mSocketLock);
         mChildSocket = PR_Accept(mSocket, nullptr,
                                     PR_INTERVAL_NO_TIMEOUT);
         if (!mChildSocket) {
-            PR_Lock(mSocketLock);
             if (mSocket) {
                 PR_Close(mSocket);
                 mSocket = nullptr;
             }
-            PR_Unlock(mSocketLock);
+            PR_RWLock_Unlock(mSocketLock);
             return;
         }
+        PR_RWLock_Unlock(mSocketLock);
 
         // The first string we read is the Slitheen ID
-        PR_Lock(mUpstreamLock);
+        PR_RWLock_Rlock(mSocketLock);
+        PR_RWLock_Wlock(mUpstreamLock);
         bool ok = readString(mChildSocket, mSlitheenID);
-        PR_Unlock(mUpstreamLock);
+        PR_RWLock_Unlock(mUpstreamLock);
+        PR_RWLock_Unlock(mSocketLock);
 
         if (!ok) {
-            PR_Lock(mSocketLock);
+            PR_RWLock_Wlock(mSocketLock);
             if (mChildSocket) {
                 PR_Close(mChildSocket);
                 mChildSocket = nullptr;
             }
-            PR_Unlock(mSocketLock);
+            PR_RWLock_Unlock(mSocketLock);
             continue;
         }
 
         while(1) {
             nsCString str;
-            ok = readString(mChildSocket, str);
+            ok = false;
+            PR_RWLock_Rlock(mSocketLock);
+            if (mChildSocket) {
+                ok = readString(mChildSocket, str);
+            }
+            PR_RWLock_Unlock(mSocketLock);
             if (!ok) {
-                PR_Lock(mSocketLock);
+                PR_RWLock_Wlock(mSocketLock);
                 if (mChildSocket) {
                     PR_Close(mChildSocket);
                     mChildSocket = nullptr;
-                    PR_Lock(mUpstreamLock);
+                    PR_RWLock_Wlock(mUpstreamLock);
                     mSlitheenID.Assign("");
-                    PR_Unlock(mUpstreamLock);
+                    PR_RWLock_Unlock(mUpstreamLock);
                 }
-                PR_Unlock(mSocketLock);
+                PR_RWLock_Unlock(mSocketLock);
                 break;
             }
-            PR_Lock(mUpstreamLock);
+            PR_RWLock_Wlock(mUpstreamLock);
             mUpstreamQueue.push(str);
-            PR_Unlock(mUpstreamLock);
+            PR_RWLock_Unlock(mUpstreamLock);
         }
     }
 }
@@ -486,7 +496,7 @@ getHeader(nsCString &header)
 {
     nsresult rv = NS_ERROR_NOT_INITIALIZED;
 
-    PR_Lock(mUpstreamLock);
+    PR_RWLock_Wlock(mUpstreamLock);
     if (mSlitheenID.Length() > 0) {
         header.Assign("X-Slitheen: ");
         header.Append(mSlitheenID);
@@ -498,7 +508,7 @@ getHeader(nsCString &header)
         header.Append("\r\n");
         rv = NS_OK;
     }
-    PR_Unlock(mUpstreamLock);
+    PR_RWLock_Unlock(mUpstreamLock);
     return rv;
 }
 
@@ -510,19 +520,22 @@ OnSlitheenResource(const nsCString &resource)
     // For now, just write the data to the socket, and assume the SOCKS
     // proxy is reading fast enough that this won't block (because we're
     // in the socket thread).
+    bool ok = false;
+    PR_RWLock_Rlock(mSocketLock);
     if (mChildSocket) {
-        bool ok = writeString(mChildSocket, resource);
-        if (!ok) {
-            PR_Lock(mSocketLock);
-            if (mChildSocket) {
-                PR_Close(mChildSocket);
-                mChildSocket = nullptr;
-                PR_Lock(mUpstreamLock);
-                mSlitheenID.Assign("");
-                PR_Unlock(mUpstreamLock);
-            }
-            PR_Unlock(mSocketLock);
+        ok = writeString(mChildSocket, resource);
+    }
+    PR_RWLock_Unlock(mSocketLock);
+    if (!ok) {
+        PR_RWLock_Wlock(mSocketLock);
+        if (mChildSocket) {
+            PR_Close(mChildSocket);
+            mChildSocket = nullptr;
+            PR_RWLock_Wlock(mUpstreamLock);
+            mSlitheenID.Assign("");
+            PR_RWLock_Unlock(mUpstreamLock);
         }
+        PR_RWLock_Unlock(mSocketLock);
     }
     return NS_OK;
 }
