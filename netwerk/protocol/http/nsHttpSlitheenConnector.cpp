@@ -35,13 +35,13 @@ NS_IMPL_ISUPPORTS(SlitheenStreamListener, nsIStreamListener)
 SlitheenStreamListener::
 SlitheenStreamListener()
 {
-std::cerr << "SlitheenStreamListener ctor " << this << "\n";
+    // std::cerr << "SlitheenStreamListener ctor " << this << "\n";
 }
 
 SlitheenStreamListener::
 ~SlitheenStreamListener()
 {
-std::cerr << "SlitheenStreamListener dtor " << this << "\n";
+    // std::cerr << "SlitheenStreamListener dtor " << this << "\n";
 }
 
 NS_IMETHODIMP
@@ -52,7 +52,7 @@ OnDataAvailable(nsIRequest *aRequest, nsISupports *aContext,
     uint32_t ret;
     nsresult rv;
 
-    std::cerr << "OnDataAvailable called with aCount = " << aCount << "\n";
+    // std::cerr << "OnDataAvailable called with aCount = " << aCount << "\n";
     char *buf = new char[aCount];
     if (!buf) {
         return NS_ERROR_OUT_OF_MEMORY;
@@ -70,7 +70,7 @@ NS_IMETHODIMP
 SlitheenStreamListener::
 OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 {
-    std::cerr << "OnStartRequest called\n";
+    // std::cerr << "OnStartRequest called\n";
     return NS_OK;
 }
 
@@ -79,7 +79,7 @@ SlitheenStreamListener::
 OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
     nsresult aStatusCode)
 {
-    std::cerr << "OnStopRequest called\n";
+    // std::cerr << "OnStopRequest called\n";
     nsHttpSlitheenConnector *connector =
         nsHttpSlitheenConnector::getInstance();
     if (connector) {
@@ -113,20 +113,20 @@ NS_IMPL_ISUPPORTS(SlitheenContentListener, nsIURIContentListener, nsISupportsWea
 SlitheenContentListener::
 SlitheenContentListener()
 {
-std::cerr << "SlitheenContentListener ctor " << this << "\n";
+    // std::cerr << "SlitheenContentListener ctor " << this << "\n";
 }
 
 SlitheenContentListener::
 ~SlitheenContentListener()
 {
-std::cerr << "SlitheenContentListener dtor " << this << "\n";
+    // std::cerr << "SlitheenContentListener dtor " << this << "\n";
 }
 
 NS_IMETHODIMP
 SlitheenContentListener::
 OnStartURIOpen(nsIURI *aURI, bool *aAbortOpen)
 {
-    std::cerr << "OnStartURLOpen called\n";
+    // std::cerr << "OnStartURLOpen called\n";
     *aAbortOpen = false;  // Do not block the loading of this content
 
     return NS_OK;
@@ -138,7 +138,7 @@ DoContent(const nsACString &aContentType,
     bool aIsContentPreferred, nsIRequest *aRequest,
     nsIStreamListener **aContentHandler, bool *_retval)
 {
-    std::cerr << "DoContent called\n";
+    // std::cerr << "DoContent called\n";
 
     mListener = new SlitheenStreamListener();
     NS_IF_ADDREF(*aContentHandler = mListener);
@@ -151,7 +151,7 @@ SlitheenContentListener::
 IsPreferred(const char *aContentType,
     char **aDesiredContentType, bool *aPreferred)
 {
-    std::cerr << "Asked for IsPreferred " << aContentType << "\n";
+    // std::cerr << "Asked for IsPreferred " << aContentType << "\n";
     if (!strcmp(aContentType, SLITHEEN_CONTENT_TYPE)) {
         *aPreferred = true;
         *aDesiredContentType = nullptr;
@@ -173,7 +173,7 @@ NS_IMETHODIMP
 SlitheenContentListener::
 GetLoadCookie(nsISupports **aLoadCookie)
 {
-    std::cerr << "GetLoadCookie called\n";
+    // std::cerr << "GetLoadCookie called\n";
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -181,7 +181,7 @@ NS_IMETHODIMP
 SlitheenContentListener::
 SetLoadCookie(nsISupports *aLoadCookie)
 {
-    std::cerr << "SetLoadCookie called\n";
+    // std::cerr << "SetLoadCookie called\n";
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -190,7 +190,7 @@ SlitheenContentListener::
 GetParentContentListener(
     nsIURIContentListener **aParentContentListener)
 {
-    std::cerr << "GetParentContentListener called\n";
+    // std::cerr << "GetParentContentListener called\n";
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -199,7 +199,7 @@ SlitheenContentListener::
 SetParentContentListener(
     nsIURIContentListener *aParentContentListener)
 {
-    std::cerr << "SetParentContentListener called\n";
+    // std::cerr << "SetParentContentListener called\n";
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -216,7 +216,7 @@ nsHttpSlitheenConnector() :
     mChildSocket(nullptr),
     mUpstreamLock(nullptr)
 {
-    std::cerr << "Creating Slitheen Connector " << (void *)this << "\n";
+    // std::cerr << "Creating Slitheen Connector " << (void *)this << "\n";
 
     mSocketLock = PR_NewLock();
     mUpstreamLock = PR_NewLock();
@@ -227,7 +227,7 @@ nsHttpSlitheenConnector() :
 nsHttpSlitheenConnector::
 ~nsHttpSlitheenConnector()
 {
-    std::cerr << "Destroying Slitheen Connector " << (void *)this << "\n";
+    // std::cerr << "Destroying Slitheen Connector " << (void *)this << "\n";
 
     smConnector = nullptr;
 
@@ -250,22 +250,22 @@ Init(unsigned short port)
     PRStatus rv;
     nsresult nsrv;
 
-    std::cerr << "Init Slitheen Connector " << (void *)this << " port " << port << "\n";
+    // std::cerr << "Init Slitheen Connector " << (void *)this << " port " << port << "\n";
 
     // Register the SlitheenContentListener as a handler for the
     // downstream slitheen data type
     nsCOMPtr<nsIURILoader>
         uriLoader(do_GetService(NS_URI_LOADER_CONTRACTID, &nsrv));
     if (NS_FAILED(nsrv)) {
-        std::cerr << "Failed to look up URI Loader\n";
+        // std::cerr << "Failed to look up URI Loader\n";
         return false;
     }
     mContentListener = new SlitheenContentListener();
     nsrv = uriLoader->RegisterContentListener(mContentListener);
     if (NS_FAILED(nsrv)) {
-        std::cerr << "Failed to register content listener\n";
+        // std::cerr << "Failed to register content listener\n";
     } else {
-        std::cerr << "Registered content listener " << this << "\n";
+        // std::cerr << "Registered content listener " << this << "\n";
     }
 
     // Create the socket
@@ -305,7 +305,7 @@ void
 nsHttpSlitheenConnector::
 Shutdown()
 {
-    std::cerr << "Shutdown Slitheen Connector (joining) " << (void *)this << "\n";
+    // std::cerr << "Shutdown Slitheen Connector (joining) " << (void *)this << "\n";
 
     PR_Lock(mSocketLock);
     if (mChildSocket) {
@@ -331,7 +331,7 @@ Shutdown()
         uriLoader->UnRegisterContentListener(mContentListener);
     }
     mContentListener = nullptr;
-    std::cerr << "Shutdown Slitheen Connector (joined) " << (void *)this << "\n";
+    // std::cerr << "Shutdown Slitheen Connector (joined) " << (void *)this << "\n";
 }
 
 // Read the full given amount of data from the PRFileDesc*, even if it
@@ -358,6 +358,30 @@ PR_Read_Fully(PRFileDesc *fd, void *vbuf, PRInt32 amount)
     return totread;
 }
 
+// Write the full given amount of data to the PRFileDesc*, even if it
+// blocks
+static
+PRInt32
+PR_Write_Fully(PRFileDesc *fd, const void *vbuf, PRInt32 amount)
+{
+    const unsigned char *buf = (const unsigned char *)vbuf;
+    PRInt32 totwritten = 0;
+
+    if (amount < 0) {
+        return -1;
+    }
+    while (amount > 0) {
+        PRInt32 res = PR_Write(fd, buf, amount);
+        if (res <= 0) {
+            return res;
+        }
+        buf += res;
+        amount -= res;
+        totwritten += res;
+    }
+    return totwritten;
+}
+
 // Read a 2-byte length then that many bytes of data from a PRFileDesc*
 // and set the given string to the result.  Returns false if EOF or a
 // read error has occurred, true otherwise.
@@ -378,6 +402,27 @@ readString(PRFileDesc *fd, nsCString &str)
     }
     str.Assign(buf, chunklen);
     delete[] buf;
+    return true;
+}
+
+// Write a 4-byte length then that many bytes of data to a PRFileDesc*.
+// Returns false if EOF or a write error has occurred, true otherwise.
+static
+bool
+writeString(PRFileDesc *fd, const nsCString &str)
+{
+    unsigned char chunklenbuf[4];
+    PRInt32 chunklen = str.Length();
+    chunklenbuf[0] = (chunklen & 0xff);
+    chunklenbuf[1] = ((chunklen >> 8) & 0xff);
+    chunklenbuf[2] = ((chunklen >> 16) & 0xff);
+    chunklenbuf[3] = ((chunklen >> 24) & 0xff);
+    PRInt32 res = PR_Write_Fully(fd, chunklenbuf, 4);
+    if (res < 4) return false;
+    res = PR_Write_Fully(fd, str.get(), chunklen);
+    if (res < chunklen) {
+        return false;
+    }
     return true;
 }
 
@@ -461,7 +506,24 @@ nsresult
 nsHttpSlitheenConnector::
 OnSlitheenResource(const nsCString &resource)
 {
-std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
+    std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
+    // For now, just write the data to the socket, and assume the SOCKS
+    // proxy is reading fast enough that this won't block (because we're
+    // in the socket thread).
+    if (mChildSocket) {
+        bool ok = writeString(mChildSocket, resource);
+        if (!ok) {
+            PR_Lock(mSocketLock);
+            if (mChildSocket) {
+                PR_Close(mChildSocket);
+                mChildSocket = nullptr;
+                PR_Lock(mUpstreamLock);
+                mSlitheenID.Assign("");
+                PR_Unlock(mUpstreamLock);
+            }
+            PR_Unlock(mSocketLock);
+        }
+    }
     return NS_OK;
 }
 
