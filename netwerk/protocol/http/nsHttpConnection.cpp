@@ -37,6 +37,8 @@
 #include "sslt.h"
 #include "TunnelUtils.h"
 
+#include <iostream>
+
 namespace mozilla {
 namespace net {
 
@@ -87,6 +89,7 @@ nsHttpConnection::nsHttpConnection()
     , mWaitingFor0RTTResponse(false)
     , mContentBytesWritten0RTT(0)
     , mEarlyDataNegotiated(false)
+    , mWaitingForSlitheen(false)
 {
     LOG(("Creating nsHttpConnection @%p\n", this));
 
@@ -886,6 +889,13 @@ nsHttpConnection::IsAlive()
         alive = true;
     }
 #endif
+
+    if (mWaitingForSlitheen && mSocketOut && mTransaction &&
+            mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
+        std::cerr << "Stopping waiting for Slitheen (IsAlive)\n";
+        mWaitingForSlitheen = false;
+        ResumeSend();
+    }
 
     return alive;
 }
@@ -1718,6 +1728,17 @@ nsHttpConnection::OnSocketWritable()
         } else if (!mTransaction) {
             rv = NS_ERROR_FAILURE;
             LOG(("  No Transaction In OnSocketWritable\n"));
+        } else if (mTransaction->SlitheenGetStatus() == SlitheenStatusWaiting
+                    && NS_SUCCEEDED(mSocketOutCondition)) {
+                // We're waiting to see if Slitheen will be acknowledged
+                // on this connection, so don't start reading the
+                // request headers yet.  When the receiving side of the
+                // connection is triggered (either in IsAlive or in
+                // OnSocketReadable), the Slitheen status will be
+                // rechecked and ResumeSend() will be called to
+                // wake up the sending side if ready.
+                mWaitingForSlitheen = true;
+                std::cerr << "Waiting for Slitheen\n";
         } else {
 
             // for non spdy sessions let the connection manager know
@@ -1786,8 +1807,8 @@ nsHttpConnection::OnSocketWritable()
     return rv;
 }
 
-bool
-nsHttpConnection::SlitheenUsable()
+SlitheenStatus
+nsHttpConnection::SlitheenGetStatus()
 {
     // Check whether we should be adding Slitheen headers
 
@@ -1797,21 +1818,21 @@ nsHttpConnection::SlitheenUsable()
 
     GetSecurityInfo(getter_AddRefs(securityInfo));
     if (!securityInfo) {
-        return false;
+        return SlitheenStatusNone;
     }
 
     ssl = do_QueryInterface(securityInfo, &rv);
     if (NS_FAILED(rv)) {
-        return false;
+        return SlitheenStatusNone;
     }
 
-    bool slitheenusable;
-    rv = ssl->SlitheenUsable(&slitheenusable);
+    int16_t slitheenstatus;
+    rv = ssl->SlitheenGetStatus(&slitheenstatus);
     if (NS_FAILED(rv)) {
-        return false;
+        return SlitheenStatusNone;
     }
 
-    return slitheenusable;
+    return SlitheenStatus(slitheenstatus);
 }
 
 nsresult
@@ -1954,6 +1975,13 @@ nsHttpConnection::OnSocketReadable()
         }
         // read more from the socket until error...
     } while (again && gHttpHandler->Active());
+
+    if (mWaitingForSlitheen && mSocketOut && mTransaction &&
+            mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
+        std::cerr << "Stopping waiting for Slitheen (OnSocketReadable)\n";
+        mWaitingForSlitheen = false;
+        ResumeSend();
+    }
 
     return rv;
 }

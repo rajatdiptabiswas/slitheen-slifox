@@ -1072,12 +1072,14 @@ struct sslSecurityInfoStr {
  * SSLSlitheenStateOff: Slitheen is not enabled for this socket
  * SSLSlitheenStateNotStarted: Slitheen enabled, not yet started
  * SSLSlitheenStateTagged: A Slitheen tag has been sent
+ * SSLSlitheenStateNack: This socket is not for use with Slitheen
  * SSLSlitheenStateAcknowledged: This socket is ready for use by Slitheen
  */
 typedef enum {
     SSLSlitheenStateOff,
     SSLSlitheenStateNotStarted,
     SSLSlitheenStateTagged,
+    SSLSlitheenStateNack,
     SSLSlitheenStateAcknowledged
 } SSLSlitheenState;
 

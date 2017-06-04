@@ -170,7 +170,7 @@ public:
     bool Do0RTT() override;
     nsresult Finish0RTT(bool aRestart) override;
 
-    bool SlitheenUsable() override;
+    SlitheenStatus SlitheenGetStatus() override;
 private:
     friend class DeleteHttpTransaction;
     virtual ~nsHttpTransaction();

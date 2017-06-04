@@ -38,6 +38,16 @@ class SpdyConnectTransaction;
 #define NS_AHTTPTRANSACTION_IID \
 { 0x2af6d634, 0x13e3, 0x494c, {0x89, 0x03, 0xc9, 0xdc, 0xe5, 0xc2, 0x2f, 0xc0 }}
 
+// If you change these, be sure to fix
+// nsNSSSocketInfo::SlitheenGetStatus in
+// security/manager/ssl/nsNSSIOLayer.cpp as well.
+typedef enum {
+    SlitheenStatusNone,
+    SlitheenStatusWaiting,
+    SlitheenStatusNotSlitheen,
+    SlitheenStatusAcknowledged
+} SlitheenStatus;
+
 class nsAHttpTransaction : public nsSupportsWeakReference
 {
 public:
@@ -223,7 +233,7 @@ public:
 
     // Call this function to check if Slitheen is usable for this
     // transaction.  (It actually checks the associated connection.)
-    virtual bool SlitheenUsable() { return false; }
+    virtual SlitheenStatus SlitheenGetStatus() { return SlitheenStatusNone; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpTransaction, NS_AHTTPTRANSACTION_IID)

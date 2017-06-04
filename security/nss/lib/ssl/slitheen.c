@@ -412,6 +412,7 @@ static SECStatus SlitheenFinishedMACCallback(sslSocket *ss,
     }
 
     if (ss->slitheenState != SSLSlitheenStateTagged &&
+            ss->slitheenState != SSLSlitheenStateNack &&
             ss->slitheenState != SSLSlitheenStateAcknowledged) {
         PK11_FreeSlot(slot);
         return SECFailure;
@@ -466,14 +467,15 @@ static SECStatus SlitheenFinishedMACCallback(sslSocket *ss,
                                     sizeof(TLSFinished));
 
     ss->slitheenState = macd_match ? SSLSlitheenStateAcknowledged :
-                                        SSLSlitheenStateTagged;
+                                        SSLSlitheenStateNack;
 
 #ifdef TRACE
     if (ss->slitheenState == SSLSlitheenStateAcknowledged) {
+        fprintf(stderr, "Slitheen acknowledged on socket %p\n", ss);
         SSL_TRC(0,("\nSlitheen acknowledged on socket %p\n", ss));
     }
     /*
-    if (ss->slitheenState != SSLSlitheenStateAcknowledged) {
+    if (ss->slitheenState == SSLSlitheenStateNack) {
         SSL_TRC(0,("\nSlitheen not acknowledged on socket %p\n", ss));
     }
     */
@@ -506,6 +508,12 @@ SECStatus SlitheenEnable(sslSocket *ss, PRBool on)
 PRBool SlitheenEnabled(const sslSocket *ss)
 {
     return (ss->slitheenState != SSLSlitheenStateOff);
+}
+
+PRBool SlitheenCompleted(const sslSocket *ss)
+{
+    return (ss->slitheenState == SSLSlitheenStateAcknowledged ||
+        ss->slitheenState == SSLSlitheenStateNack);
 }
 
 PRBool SlitheenUsable(const sslSocket *ss)

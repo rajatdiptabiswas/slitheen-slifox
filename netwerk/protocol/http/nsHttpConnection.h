@@ -218,7 +218,7 @@ public:
     // override of nsAHttpConnection
     virtual uint32_t Version();
 
-    virtual bool SlitheenUsable();
+    virtual SlitheenStatus SlitheenGetStatus();
 
 private:
     // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
@@ -372,6 +372,8 @@ private:
                                                              // the handsake.
     int64_t                        mContentBytesWritten0RTT;
     bool                           mEarlyDataNegotiated; //Only used for telemetry
+
+    bool                           mWaitingForSlitheen;
 };
 
 } // namespace net

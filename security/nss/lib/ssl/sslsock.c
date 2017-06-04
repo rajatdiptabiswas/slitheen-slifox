@@ -789,6 +789,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
             break;
 
         case SSL_ENABLE_SLITHEEN:
+        case SSL_COMPLETED_SLITHEEN:
         case SSL_USABLE_SLITHEEN:
             SlitheenEnable(ss, on);
             break;
@@ -928,6 +929,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
             break;
         case SSL_ENABLE_SLITHEEN:
             on = SlitheenEnabled(ss);
+            break;
+        case SSL_COMPLETED_SLITHEEN:
+            on = SlitheenCompleted(ss);
             break;
         case SSL_USABLE_SLITHEEN:
             on = SlitheenUsable(ss);

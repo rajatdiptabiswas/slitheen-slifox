@@ -6,6 +6,7 @@
 
 SECStatus SlitheenEnable(sslSocket *ss, PRBool on);
 PRBool SlitheenEnabled(const sslSocket *ss);
+PRBool SlitheenCompleted(const sslSocket *ss);
 PRBool SlitheenUsable(const sslSocket *ss);
 
 #endif

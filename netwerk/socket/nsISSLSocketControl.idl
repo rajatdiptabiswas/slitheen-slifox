@@ -141,6 +141,6 @@ interface nsISSLSocketControl : nsISupports {
      * For Slitheen, we need to be able to check if Slitheen is usable
      * on this connection.
      */
-     bool SlitheenUsable();
+     short SlitheenGetStatus();
 };
 

@@ -155,7 +155,7 @@ public:
     // Call this function to check if Slitheen is usable for this
     // connection.  This function is overridden by nsHttpConnection and
     // ConnectionHandle (the latter is in nsHttpConnectionMgr.cpp)
-    virtual bool SlitheenUsable() { return false; }
+    virtual SlitheenStatus SlitheenGetStatus() { return SlitheenStatusNone; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)

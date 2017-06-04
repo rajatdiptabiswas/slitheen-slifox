@@ -297,7 +297,7 @@ Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
 
     if (!mInputStream) {
         nsCString slitheenheader;
-        if (mTrans->SlitheenUsable()) {
+        if (mTrans->SlitheenGetStatus() == SlitheenStatusAcknowledged) {
             nsHttpSlitheenConnector *connector =
                 nsHttpSlitheenConnector::getInstance();
             if (connector) {
@@ -2620,12 +2620,12 @@ nsHttpTransaction::Finish0RTT(bool aRestart)
     return NS_OK;
 }
 
-bool
-nsHttpTransaction::SlitheenUsable()
+SlitheenStatus
+nsHttpTransaction::SlitheenGetStatus()
 {
-    if (!mConnection) return false;
+    if (!mConnection) return SlitheenStatusNone;
 
-    return mConnection->SlitheenUsable();
+    return mConnection->SlitheenGetStatus();
 }
 
 } // namespace net
