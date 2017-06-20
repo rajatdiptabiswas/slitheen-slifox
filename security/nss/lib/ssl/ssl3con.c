@@ -3629,6 +3629,8 @@ ssl3_ComputeMasterSecretFinish(sslSocket *ss,
 {
     PK11SymKey *ms = NULL;
 
+    //ssl_PrintKey(ss, "Pre Master Secret", pms);
+
     ms = PK11_DeriveWithFlags(pms, master_derive,
                               params, key_derive,
                               CKA_DERIVE, 0, keyFlags);
@@ -3636,6 +3638,8 @@ ssl3_ComputeMasterSecretFinish(sslSocket *ss,
         ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
         return SECFailure;
     }
+
+    //ssl_PrintKey(ss, "Master Secret", ms);
 
     if (pms_version && ss->opt.detectRollBack) {
         SSL3ProtocolVersion client_version;
@@ -3737,6 +3741,11 @@ ssl3_ComputeMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
     params.data = (unsigned char *)&master_params;
     params.len = master_params_len;
 
+    //SSL_TRC(0, ("%d: SSL[%d]: Computing master secret",
+    //             SSL_GETPID(), ss ? ss->fd : NULL));
+    //PRINT_BUF(0, (ss, "ClientHello random", cr, SSL3_RANDOM_LENGTH));
+    //PRINT_BUF(0, (ss, "ServerHello random", sr, SSL3_RANDOM_LENGTH));
+
     return ssl3_ComputeMasterSecretFinish(ss, master_derive, key_derive,
                                           pms_version_ptr, &params,
                                           keyFlags, pms, msp);
@@ -3797,6 +3806,10 @@ tls_ComputeExtendedMasterSecretInt(sslSocket *ss, PK11SymKey *pms,
     extended_master_params.pVersion = pms_version_ptr;
     extended_master_params.pSessionHash = hashes.u.raw;
     extended_master_params.ulSessionHashLen = hashes.len;
+
+    //SSL_TRC(0, ("%d: SSL[%d]: Computing master secret",
+    //             SSL_GETPID(), ss ? ss->fd : NULL));
+    //PRINT_BUF(0, (ss, "Session Hash", hashes.u.raw, hashes.len));
 
     params.data = (unsigned char *)&extended_master_params;
     params.len = sizeof extended_master_params;
@@ -11433,7 +11446,13 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         else
             ss->ssl3.hs.finishedMsgs.tFinished[0] = tlsFinished;
         ss->ssl3.hs.finishedBytes = sizeof(tlsFinished);
-        if (rv == SECSuccess) {  /* ssl3_ComputeTLSFinished was successul */
+
+
+        if (rv == SECSuccess) {  /* ssl3_ComputeTLSFinished was successul, update handshake hash */
+            rv = ssl3_UpdateHandshakeHashes(ss, &tlsFinished, ss->ssl3.hs.finishedBytes);
+        }
+
+        if (rv == SECSuccess) {  /* update of TLSFinished hash was successul */
             rv = SECFailure;
             if (ss->finishedMACCallback) {
                 rv = ss->finishedMACCallback(ss, (const TLSFinished *)b,
@@ -11784,11 +11803,15 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
             if (rv != SECSuccess)
                 return rv; /* err code already set. */
         }
-
-        /* The message body */
-        rv = ssl3_UpdateHandshakeHashes(ss, b, length);
-        if (rv != SECSuccess)
-            return rv; /* err code already set. */
+        /* We should wait to include the finished message body. If it was replaced
+         * by Slitheen in a session resumption, we need to update with the
+         * original Finished hash */
+        if(ss->ssl3.hs.msg_type != finished){ 
+            /* The message body */
+            rv = ssl3_UpdateHandshakeHashes(ss, b, length);
+            if (rv != SECSuccess)
+                return rv; /* err code already set. */
+        }
     }
 
     PORT_SetError(0); /* each message starts with no error. */
