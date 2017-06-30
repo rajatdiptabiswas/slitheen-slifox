@@ -407,9 +407,11 @@ nsresult NS_NewFTPDirListingConv(nsFTPDirListingConv** result);
 #include "nsUnknownDecoder.h"
 
 #include "nsTXTToHTMLConv.h"
+#include "nsSlitheenConv.h"
 namespace mozilla {
 namespace net {
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsTXTToHTMLConv, Init)
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsSlitheenConv, Init)
 } // namespace net
 } // namespace mozilla
 
@@ -442,6 +444,7 @@ nsresult NS_NewStreamConv(nsStreamConverterService **aStreamConv);
 #define XCOMPRESS_TO_UNCOMPRESSED    "?from=x-compress&to=uncompressed"
 #define DEFLATE_TO_UNCOMPRESSED      "?from=deflate&to=uncompressed"
 #define PLAIN_TO_HTML                "?from=text/plain&to=text/html"
+#define SLITHEEN                     "?from=sli/theen&to=*/*"
 
 static const mozilla::Module::CategoryEntry kNeckoCategories[] = {
     { NS_ISTREAMCONVERTER_KEY, FTP_TO_INDEX, "" },
@@ -457,6 +460,7 @@ static const mozilla::Module::CategoryEntry kNeckoCategories[] = {
     { NS_ISTREAMCONVERTER_KEY, XCOMPRESS_TO_UNCOMPRESSED, "" },
     { NS_ISTREAMCONVERTER_KEY, DEFLATE_TO_UNCOMPRESSED, "" },
     { NS_ISTREAMCONVERTER_KEY, PLAIN_TO_HTML, "" },
+    { NS_ISTREAMCONVERTER_KEY, SLITHEEN, "" },
     NS_BINARYDETECTOR_CATEGORYENTRY,
     { nullptr }
 };
@@ -724,6 +728,7 @@ NS_DEFINE_NAMED_CID(NS_UNKNOWNDECODER_CID);
 NS_DEFINE_NAMED_CID(NS_BINARYDETECTOR_CID);
 NS_DEFINE_NAMED_CID(NS_HTTPCOMPRESSCONVERTER_CID);
 NS_DEFINE_NAMED_CID(NS_NSTXTTOHTMLCONVERTER_CID);
+NS_DEFINE_NAMED_CID(NS_NSSLITHEENCONVERTER_CID);
 NS_DEFINE_NAMED_CID(MOZITXTTOHTMLCONV_CID);
 NS_DEFINE_NAMED_CID(NS_DIRINDEX_CID);
 NS_DEFINE_NAMED_CID(NS_MIMEHEADERPARAM_CID);
@@ -846,6 +851,7 @@ static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
     { &kNS_BINARYDETECTOR_CID, false, nullptr, CreateNewBinaryDetectorFactory },
     { &kNS_HTTPCOMPRESSCONVERTER_CID, false, nullptr, CreateNewHTTPCompressConvFactory },
     { &kNS_NSTXTTOHTMLCONVERTER_CID, false, nullptr, mozilla::net::nsTXTToHTMLConvConstructor },
+    { &kNS_NSSLITHEENCONVERTER_CID, false, nullptr, mozilla::net::nsSlitheenConvConstructor },
     { &kMOZITXTTOHTMLCONV_CID, false, nullptr, CreateNewTXTToHTMLConvFactory },
     { &kNS_DIRINDEX_CID, false, nullptr, nsDirIndexConstructor },
     { &kNS_MIMEHEADERPARAM_CID, false, nullptr, nsMIMEHeaderParamImplConstructor },
@@ -978,6 +984,7 @@ static const mozilla::Module::ContractIDEntry kNeckoContracts[] = {
     { NS_ISTREAMCONVERTER_KEY XCOMPRESS_TO_UNCOMPRESSED, &kNS_HTTPCOMPRESSCONVERTER_CID },
     { NS_ISTREAMCONVERTER_KEY DEFLATE_TO_UNCOMPRESSED, &kNS_HTTPCOMPRESSCONVERTER_CID },
     { NS_ISTREAMCONVERTER_KEY PLAIN_TO_HTML, &kNS_NSTXTTOHTMLCONVERTER_CID },
+    { NS_ISTREAMCONVERTER_KEY SLITHEEN, &kNS_NSSLITHEENCONVERTER_CID },
     { MOZ_TXTTOHTMLCONV_CONTRACTID, &kMOZITXTTOHTMLCONV_CID },
     { "@mozilla.org/dirIndex;1", &kNS_DIRINDEX_CID },
     { NS_MIMEHEADERPARAM_CONTRACTID, &kNS_MIMEHEADERPARAM_CID },
