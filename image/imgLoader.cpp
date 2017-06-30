@@ -2637,6 +2637,28 @@ ProxyListener::OnStartRequest(nsIRequest* aRequest, nsISupports* ctxt)
           }
         }
       }
+
+      /* If sli/theen, we'll pass it to a SlitheenStreamListener */
+      else if (NS_LITERAL_CSTRING("sli/theen").Equals(contentType)) {
+        std::cerr << "Found a sli/theen content type. Passing to Slitheen listener\n";
+
+        nsCOMPtr<nsIStreamConverterService> convServ(
+          do_GetService("@mozilla.org/streamConverters;1", &rv));
+        if (NS_SUCCEEDED(rv)) {
+          nsCOMPtr<nsIStreamListener> toListener(mDestListener);
+          nsCOMPtr<nsIStreamListener> fromListener;
+
+          rv = convServ->AsyncConvertData("sli/theen",
+                                          "*/*",
+                                          toListener,
+                                          nullptr,
+                                          getter_AddRefs(fromListener));
+
+          if(NS_SUCCEEDED(rv)) {
+            mDestListener = fromListener;
+          }
+        }
+      }
     }
   }
 
