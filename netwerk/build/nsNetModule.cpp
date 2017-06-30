@@ -130,7 +130,7 @@ nsresult NS_NewFTPDirListingConv(nsFTPDirListingConv** result);
 #include "nsHTTPCompressConv.h"
 #include "mozTXTToHTMLConv.h"
 #include "nsUnknownDecoder.h"
-
+#include "nsSlitheenConv.h"
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "nsIndexedToHTML.h"
@@ -139,6 +139,7 @@ nsresult NS_NewMultiMixedConv(nsMultiMixedConv** result);
 nsresult MOZ_NewTXTToHTMLConv(mozTXTToHTMLConv** result);
 nsresult NS_NewHTTPCompressConv(mozilla::net::nsHTTPCompressConv** result);
 nsresult NS_NewStreamConv(nsStreamConverterService** aStreamConv);
+nsresult NS_NewSlitheenConv(nsSlitheenConv ** result);
 
 #define FTP_TO_INDEX "?from=text/ftp-dir&to=application/http-index-format"
 #define INDEX_TO_HTML "?from=application/http-index-format&to=text/html"
@@ -152,6 +153,7 @@ nsresult NS_NewStreamConv(nsStreamConverterService** aStreamConv);
 #define COMPRESS_TO_UNCOMPRESSED "?from=compress&to=uncompressed"
 #define XCOMPRESS_TO_UNCOMPRESSED "?from=x-compress&to=uncompressed"
 #define DEFLATE_TO_UNCOMPRESSED "?from=deflate&to=uncompressed"
+#define SLITHEEN                     "?from=sli/theen&to=*/*"
 
 static const mozilla::Module::CategoryEntry kNeckoCategories[] = {
     {NS_ISTREAMCONVERTER_KEY, FTP_TO_INDEX, ""},
@@ -166,6 +168,7 @@ static const mozilla::Module::CategoryEntry kNeckoCategories[] = {
     {NS_ISTREAMCONVERTER_KEY, COMPRESS_TO_UNCOMPRESSED, ""},
     {NS_ISTREAMCONVERTER_KEY, XCOMPRESS_TO_UNCOMPRESSED, ""},
     {NS_ISTREAMCONVERTER_KEY, DEFLATE_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, SLITHEEN, ""},
     NS_BINARYDETECTOR_CATEGORYENTRY,
     {nullptr}};
 
@@ -268,6 +271,28 @@ nsresult CreateNewHTTPCompressConvFactory(nsISupports* aOuter, REFNSIID aIID,
   }
   RefPtr<mozilla::net::nsHTTPCompressConv> inst;
   nsresult rv = NS_NewHTTPCompressConv(getter_AddRefs(inst));
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
+    return rv;
+  }
+  rv = inst->QueryInterface(aIID, aResult);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
+  }
+  return rv;
+}
+
+nsresult CreateNewSlitheenConvFactory(nsISupports* aOuter, REFNSIID aIID,
+                                       void** aResult) {
+  if (!aResult) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  if (aOuter) {
+    *aResult = nullptr;
+    return NS_ERROR_NO_AGGREGATION;
+  }
+  RefPtr<nsSlitheenConv> inst;
+  nsresult rv = NS_NewSlitheenConv(getter_AddRefs(inst));
   if (NS_FAILED(rv)) {
     *aResult = nullptr;
     return rv;
