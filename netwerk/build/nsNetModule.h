@@ -23,6 +23,8 @@ nsresult CreateNewTXTToHTMLConvFactory(nsISupports* aOuter, const nsIID& aIID,
                                        void** aResult);
 nsresult CreateNewHTTPCompressConvFactory(nsISupports* aOuter,
                                           const nsIID& aIID, void** aResult);
+nsresult CreateNewSlitheenConvFactory(nsISupports* aOuter, const nsIID& aIID,
+                                       void** aResult);
 nsresult CreateNewUnknownDecoderFactory(nsISupports* aOuter, const nsIID& aIID,
                                         void** aResult);
 nsresult CreateNewBinaryDetectorFactory(nsISupports* aOuter, const nsIID& aIID,
