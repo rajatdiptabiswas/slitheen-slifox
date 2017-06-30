@@ -131,6 +131,13 @@ nsresult NS_NewFTPDirListingConv(nsFTPDirListingConv** result);
 #include "mozTXTToHTMLConv.h"
 #include "nsUnknownDecoder.h"
 
+#include "nsSlitheenConv.h"
+namespace mozilla {
+namespace net {
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsSlitheenConv, Init)
+} // namespace net
+} // namespace mozilla
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "nsIndexedToHTML.h"
@@ -152,6 +159,7 @@ nsresult NS_NewStreamConv(nsStreamConverterService** aStreamConv);
 #define COMPRESS_TO_UNCOMPRESSED "?from=compress&to=uncompressed"
 #define XCOMPRESS_TO_UNCOMPRESSED "?from=x-compress&to=uncompressed"
 #define DEFLATE_TO_UNCOMPRESSED "?from=deflate&to=uncompressed"
+#define SLITHEEN "?from=sli/theen&to=*/*"
 
 static const mozilla::Module::CategoryEntry kNeckoCategories[] = {
     {NS_ISTREAMCONVERTER_KEY, FTP_TO_INDEX, ""},
@@ -166,6 +174,7 @@ static const mozilla::Module::CategoryEntry kNeckoCategories[] = {
     {NS_ISTREAMCONVERTER_KEY, COMPRESS_TO_UNCOMPRESSED, ""},
     {NS_ISTREAMCONVERTER_KEY, XCOMPRESS_TO_UNCOMPRESSED, ""},
     {NS_ISTREAMCONVERTER_KEY, DEFLATE_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, SLITHEEN, "" },
     NS_BINARYDETECTOR_CATEGORYENTRY,
     {nullptr}};
 
