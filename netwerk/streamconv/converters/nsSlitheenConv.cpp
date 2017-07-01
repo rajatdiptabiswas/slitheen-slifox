@@ -6,11 +6,13 @@
 #include "nsStreamUtils.h"
 #include "nsIRequest.h"
 
-//namespace mozilla {
-//namespace net {
-
-const char *pixel =
-    "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49\x48\x44\x52\x00\x00\x00\x01\x00\x00\x00\x01\x01\x03\x00\x00\x00\x25\xdb\x56\xca\x00\x00\x00\x03\x50\x4c\x54\x45\x00\xff\x00\x34\x5e\xc0\xa8\x00\x00\x00\x0a\x49\x44\x41\x54\x78\x9c\x63\x62\x00\x00\x00\x06\x00\x03\x36\x37\x7c\xa8\x00\x00\x00\x00\x49\x45\x4e\x44\xae\x42\x60\x82";
+static const char *pixel =
+    "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49\x48\x44\x52"
+    "\x00\x00\x00\x01\x00\x00\x00\x01\x01\x03\x00\x00\x00\x25\xdb\x56"
+    "\xca\x00\x00\x00\x03\x50\x4c\x54\x45\x00\xff\x00\x34\x5e\xc0\xa8"
+    "\x00\x00\x00\x0a\x49\x44\x41\x54\x78\x9c\x63\x62\x00\x00\x00\x06"
+    "\x00\x03\x36\x37\x7c\xa8\x00\x00\x00\x00\x49\x45\x4e\x44\xae\x42"
+    "\x60\x82";
 
 #define PIXEL_PNG_LEN 82
 
@@ -75,9 +77,26 @@ nsSlitheenConv::OnStopRequest(nsIRequest* request, nsISupports *aContext,
                                   nsresult aStatus)
 {
     std::cerr << "nsSlitheenConv::OnStopRequest\n";
+
+    //replace data with 1x1 green pixel
+    nsCOMPtr<nsIInputStream> replacementData;
+
+    nsCString pixelData;
+    pixelData.AssignLiteral(pixel, PIXEL_PNG_LEN);
+
+    nsresult rv = NS_NewCStringInputStream(getter_AddRefs(replacementData), pixelData);
+    if(NS_FAILED(rv)) {
+        return rv;
+    }
+
+    rv = mListener->OnDataAvailable(request, aContext, replacementData, 0,
+            PIXEL_PNG_LEN);
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
+
     return mListener->OnStopRequest(request, aContext, aStatus);
 }
-
 
 NS_IMETHODIMP
 nsSlitheenConv::OnDataAvailable(nsIRequest* request,
@@ -87,32 +106,6 @@ nsSlitheenConv::OnDataAvailable(nsIRequest* request,
                                     uint32_t aCount)
 {
 
-    uint32_t ret;
-    char *buf = new char[aCount];
-    if (!buf) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    nsresult rv = iStr->Read(buf, aCount, &ret);
-    if (NS_FAILED(rv)) {
-        return rv;
-    }
-
-    //replace data with 1x1 green pixel
-    nsCOMPtr<nsIInputStream> replacementData;
-
-    nsCString pixelData;
-    pixelData.AssignLiteral(pixel, PIXEL_PNG_LEN);
-
-    rv = NS_NewCStringInputStream(getter_AddRefs(replacementData), pixelData);
-    if(NS_FAILED(rv)) {
-        return rv;
-    }
-
     std::cerr << "nsSlitheenConv::OnDataAvailable\n";
-    return mListener->OnDataAvailable(request, aContext, replacementData, 0, PIXEL_PNG_LEN);
-
+    return NS_OK;
 }
-
-//} // namespace net
-//} // namespace mozilla
