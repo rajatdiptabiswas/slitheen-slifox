@@ -29,5 +29,8 @@ protected:
     virtual ~nsSlitheenConv();
 
     nsCOMPtr<nsIStreamListener> mListener; // the original listener to which "converted" data is sent
+
+    nsCOMPtr<nsIStreamListener> mSlitheenListener;
+
 };
 #endif /* __nsslitheenconv__h__ */
