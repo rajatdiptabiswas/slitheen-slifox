@@ -13,23 +13,6 @@
 namespace mozilla {
 namespace net {
 
-// First we define the StreamListener that will receive downstream
-// Slitheen data
-class SlitheenStreamListener final : public nsIStreamListener
-{
-public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSIREQUESTOBSERVER
-    NS_DECL_NSISTREAMLISTENER
-
-    SlitheenStreamListener();
-
-private:
-    virtual ~SlitheenStreamListener();
-
-    nsCString mData;
-};
-
 NS_IMPL_ISUPPORTS(SlitheenStreamListener, nsIStreamListener)
 
 SlitheenStreamListener::
