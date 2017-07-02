@@ -38,6 +38,7 @@ EXPORTS.mozilla.net += [
     'HttpChannelChild.h',
     'HttpChannelParent.h',
     'HttpInfo.h',
+    'nsHttpSlitheenConnector.h',
     'NullHttpChannel.h',
     'PHttpChannelParams.h',
     'PSpdyPush.h',
