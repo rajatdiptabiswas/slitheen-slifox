@@ -1,10 +1,9 @@
-#include <iostream>
-
 #include "nsSlitheenConv.h"
 #include "nsCOMPtr.h"
 #include "nsError.h"
 #include "nsStreamUtils.h"
 #include "nsIRequest.h"
+#include "mozilla/net/nsHttpSlitheenConnector.h"
 
 static const char *pixel =
     "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49\x48\x44\x52"
@@ -24,17 +23,19 @@ NS_IMPL_ISUPPORTS(nsSlitheenConv,
 
 nsSlitheenConv::nsSlitheenConv()
 {
-    std::cerr << "nsSlitheenConv ctor\n";
 }
 
 nsSlitheenConv::~nsSlitheenConv()
 {
-    std::cerr << "nsSlitheenConv dtor\n";
 }
 
 nsresult
 nsSlitheenConv::Init()
 {
+
+    //Create SlitheenStreamListener
+    mSlitheenListener = new mozilla::net::SlitheenStreamListener();
+
     return NS_OK;
 }
 
@@ -67,7 +68,12 @@ NS_IMETHODIMP
 nsSlitheenConv::OnStartRequest(nsIRequest* request, nsISupports *aContext)
 {
 
-    std::cerr << "nsSlitheenConv::OnStartRequest\n";
+
+    nsresult rv = mSlitheenListener->OnStartRequest(request, aContext);
+    if(NS_FAILED(rv)) {
+        return rv;
+    }
+
     return mListener->OnStartRequest(request, aContext);
 }
 
@@ -76,13 +82,11 @@ NS_IMETHODIMP
 nsSlitheenConv::OnStopRequest(nsIRequest* request, nsISupports *aContext,
                                   nsresult aStatus)
 {
-    std::cerr << "nsSlitheenConv::OnStopRequest\n";
 
     //replace data with 1x1 green pixel
     nsCOMPtr<nsIInputStream> replacementData;
 
-    nsCString pixelData;
-    pixelData.AssignLiteral(pixel, PIXEL_PNG_LEN);
+    nsCString pixelData(pixel, PIXEL_PNG_LEN);
 
     nsresult rv = NS_NewCStringInputStream(getter_AddRefs(replacementData), pixelData);
     if(NS_FAILED(rv)) {
@@ -92,6 +96,11 @@ nsSlitheenConv::OnStopRequest(nsIRequest* request, nsISupports *aContext,
     rv = mListener->OnDataAvailable(request, aContext, replacementData, 0,
             PIXEL_PNG_LEN);
     if (NS_FAILED(rv)) {
+        return rv;
+    }
+
+    rv = mSlitheenListener->OnStopRequest(request, aContext, aStatus);
+    if(NS_FAILED(rv)) {
         return rv;
     }
 
@@ -107,7 +116,12 @@ nsSlitheenConv::OnDataAvailable(nsIRequest* request,
                                     uint32_t aCount)
 {
 
-    std::cerr << "nsSlitheenConv::OnDataAvailable\n";
+    //Send data to SlitheenStreamListener
+    nsresult rv = mSlitheenListener->OnDataAvailable(request, aContext, iStr, aSourceOffset, aCount);
+    if(NS_FAILED(rv)) {
+        return rv;
+    }
+
     return NS_OK;
 }
 
