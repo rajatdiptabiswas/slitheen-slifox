@@ -79,6 +79,7 @@
 #include "mozilla/loader/ScriptCacheActors.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/CookieServiceChild.h"
+#include "mozilla/net/SlitheenConnectorChild.h"
 #include "mozilla/net/CaptivePortalService.h"
 #include "mozilla/PerformanceMetricsCollector.h"
 #include "mozilla/PerformanceUtils.h"
@@ -2028,6 +2029,20 @@ mozilla::ipc::IPCResult ContentChild::RecvPScriptCacheConstructor(
 
   static_cast<loader::ScriptCacheChild*>(actor)->Init(fd, wantCacheData);
   return IPC_OK();
+}
+
+PSlitheenConnectorChild*
+ContentChild::AllocPSlitheenConnectorChild()
+{
+  SlitheenConnectorChild *child = new SlitheenConnectorChild();
+  return child;
+}
+
+bool
+ContentChild::DeallocPSlitheenConnectorChild(PSlitheenConnectorChild* sliConn)
+{
+  delete sliConn;
+  return true;
 }
 
 PNeckoChild* ContentChild::AllocPNeckoChild() { return new NeckoChild(); }

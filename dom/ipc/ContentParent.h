@@ -428,6 +428,8 @@ class ContentParent final : public PContentParent,
     return PContentParent::RecvPNeckoConstructor(aActor);
   }
 
+  PSlitheenConnectorParent* AllocPSlitheenConnectorParent();
+
   PPrintingParent* AllocPPrintingParent();
 
   bool DeallocPPrintingParent(PPrintingParent* aActor);
@@ -878,6 +880,8 @@ class ContentParent final : public PContentParent,
   bool DeallocPScriptCacheParent(PScriptCacheParent* shell);
 
   bool DeallocPNeckoParent(PNeckoParent* necko);
+
+  bool DeallocPSlitheenConnectorParent(PSlitheenConnectorParent* necko);
 
   PPSMContentDownloaderParent* AllocPPSMContentDownloaderParent(
       const uint32_t& aCertType);
