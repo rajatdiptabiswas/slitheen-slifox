@@ -385,6 +385,8 @@ class ContentParent final : public PContentParent,
     return PContentParent::RecvPNeckoConstructor(aActor);
   }
 
+  virtual PSlitheenConnectorParent* AllocPSlitheenConnectorParent() override;
+
   virtual PPrintingParent* AllocPPrintingParent() override;
 
   virtual bool DeallocPPrintingParent(PPrintingParent* aActor) override;
@@ -828,6 +830,10 @@ class ContentParent final : public PContentParent,
 
   virtual PPSMContentDownloaderParent* AllocPPSMContentDownloaderParent(
       const uint32_t& aCertType) override;
+
+  virtual bool DeallocPSlitheenConnectorParent(
+    PSlitheenConnectorParent* necko) override;
+
 
   virtual bool DeallocPPSMContentDownloaderParent(
       PPSMContentDownloaderParent* aDownloader) override;

@@ -65,6 +65,7 @@
 #include "mozilla/loader/ScriptCacheActors.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/CookieServiceChild.h"
+#include "mozilla/net/SlitheenConnectorChild.h"
 #include "mozilla/net/CaptivePortalService.h"
 #include "mozilla/plugins/PluginInstanceParent.h"
 #include "mozilla/plugins/PluginModuleParent.h"
@@ -1866,9 +1867,21 @@ bool ContentChild::DeallocPScriptCacheChild(PScriptCacheChild* cache) {
   return true;
 }
 
+PSlitheenConnectorChild* ContentChild::AllocPSlitheenConnectorChild() {
+  SlitheenConnectorChild *child = new SlitheenConnectorChild();
+  return child;
+}
+
+bool ContentChild::DeallocPSlitheenConnectorChild(
+  PSlitheenConnectorChild* sliConn) {
+  delete sliConn;
+  return true;
+}
+
 mozilla::ipc::IPCResult ContentChild::RecvPScriptCacheConstructor(
     PScriptCacheChild* actor, const FileDescOrError& cacheFile,
     const bool& wantCacheData) {
+
   Maybe<FileDescriptor> fd;
   if (cacheFile.type() == cacheFile.TFileDescriptor) {
     fd.emplace(cacheFile.get_FileDescriptor());
