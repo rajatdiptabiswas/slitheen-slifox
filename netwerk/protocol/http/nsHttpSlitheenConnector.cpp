@@ -1,3 +1,6 @@
+#include <iostream>
+
+#include "mozilla/dom/ContentChild.h"
 #include "nsWeakReference.h"
 #include "nsIStreamListener.h"
 #include "nsIInputStream.h"
@@ -5,6 +8,7 @@
 #include "nsCURILoader.h"
 #include "prio.h"
 #include "nsHttpSlitheenConnector.h"
+#include "SlitheenConnectorChild.h"
 
 #define SLITHEEN_CONTENT_TYPE "sli/theen"
 
@@ -16,6 +20,16 @@ NS_IMPL_ISUPPORTS(SlitheenStreamListener, nsIStreamListener)
 SlitheenStreamListener::
 SlitheenStreamListener()
 {
+
+    mConnectorChild = nullptr;
+    // std::cerr << "SlitheenStreamListener ctor " << this << "\n";
+    if(XRE_IsContentProcess()) {
+        std::cerr << "New stream listener in content process\n";
+
+
+    } else {
+        std::cerr << "New stream listener in parent process\n";
+    }
 }
 
 SlitheenStreamListener::
@@ -56,11 +70,38 @@ SlitheenStreamListener::
 OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
     nsresult aStatusCode)
 {
-    nsHttpSlitheenConnector *connector =
-        nsHttpSlitheenConnector::getInstance();
-    if (connector) {
-        connector->OnSlitheenResource(mData);
+    // std::cerr << "OnStopRequest called\n";
+
+    //If it's a child, send to parent
+    if (XRE_IsContentProcess()) {
+        //std::cerr << "SlitheenStreamListener::OnStopRequest (child pid " << getpid() << ")\n";
+
+        using mozilla::dom::ContentChild;
+        ContentChild *child = ContentChild::GetSingleton();
+        if (child) {
+            PSlitheenConnectorChild *pc =
+                child->SendPSlitheenConnectorConstructor();
+
+            mConnectorChild = static_cast<SlitheenConnectorChild *>(pc);
+
+        } else {
+            std::cerr << "Failed to get child. pid = " << getpid() << "\n";
+        }
+
+        if (mConnectorChild) {
+            mConnectorChild->SendOnSlitheenResource(mData);
+        }
         mData.Assign("");
+
+    } else if (XRE_IsParentProcess()) {
+
+        //std::cerr << "SlitheenStreamListener::OnStopRequest (parent pid " << getpid() << ")\n";
+        nsHttpSlitheenConnector *connector =
+            nsHttpSlitheenConnector::getInstance();
+        if (connector) {
+            connector->OnSlitheenResource(mData);
+            mData.Assign("");
+        }
     }
 
     return NS_OK;
@@ -84,7 +125,9 @@ private:
     nsCOMPtr<nsIStreamListener> mListener;
 };
 
-NS_IMPL_ISUPPORTS(SlitheenContentListener, nsIURIContentListener, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(SlitheenContentListener,
+                  nsIURIContentListener,
+                  nsISupportsWeakReference)
 
 SlitheenContentListener::
 SlitheenContentListener()
@@ -472,6 +515,7 @@ nsresult
 nsHttpSlitheenConnector::
 OnSlitheenResource(const nsCString &resource)
 {
+    std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
     // For now, just write the data to the socket, and assume the SOCKS
     // proxy is reading fast enough that this won't block (because we're
     // in the socket thread).
@@ -488,6 +532,7 @@ OnSlitheenResource(const nsCString &resource)
         // The read side of the socket should fail as well, so we'll let
         // that side handle closing and resetting the socket.  For now,
         // this resource will just be lost.
+        std::cerr << "Slitheen resource lost due to error writing to SOCKS proxy\n";
     }
     return NS_OK;
 }

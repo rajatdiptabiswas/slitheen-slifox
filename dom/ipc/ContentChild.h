@@ -277,6 +277,10 @@ public:
 
   virtual bool DeallocPNeckoChild(PNeckoChild*) override;
 
+  virtual PSlitheenConnectorChild* AllocPSlitheenConnectorChild() override;
+
+  virtual bool DeallocPSlitheenConnectorChild(PSlitheenConnectorChild*) override;
+
   virtual PPrintingChild* AllocPPrintingChild() override;
 
   virtual bool DeallocPPrintingChild(PPrintingChild*) override;

@@ -49,6 +49,8 @@ EXPORTS.mozilla.net += [
     'NullHttpChannel.h',
     'PHttpChannelParams.h',
     'PSpdyPush.h',
+    'SlitheenConnectorChild.h',
+    'SlitheenConnectorParent.h',
     'TimingStruct.h',
 ]
 
@@ -99,6 +101,8 @@ UNIFIED_SOURCES += [
     'nsServerTiming.cpp',
     'NullHttpChannel.cpp',
     'NullHttpTransaction.cpp',
+    'SlitheenConnectorChild.cpp',
+    'SlitheenConnectorParent.cpp',
     'TunnelUtils.cpp',
 ]
 
@@ -111,6 +115,7 @@ IPDL_SOURCES += [
     'PAltDataOutputStream.ipdl',
     'PHttpBackgroundChannel.ipdl',
     'PHttpChannel.ipdl',
+    'PSlitheenConnector.ipdl',
 ]
 
 EXTRA_JS_MODULES += [
