@@ -1,6 +1,8 @@
 #ifndef nsHttpSlitheenConnector_h__
 #define nsHttpSlitheenConnector_h__
 
+#include "SlitheenConnectorChild.h"
+
 #include <queue>
 
 #include "prrwlock.h"
@@ -91,6 +93,7 @@ private:
     virtual ~SlitheenStreamListener();
 
     nsCString mData;
+    SlitheenConnectorChild *mConnectorChild;
 };
 
 } // namespace net

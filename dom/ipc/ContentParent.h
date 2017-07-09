@@ -423,6 +423,8 @@ public:
     return PContentParent::RecvPNeckoConstructor(aActor);
   }
 
+  virtual PSlitheenConnectorParent* AllocPSlitheenConnectorParent() override;
+
   virtual PPrintingParent* AllocPPrintingParent() override;
 
   virtual bool DeallocPPrintingParent(PPrintingParent* aActor) override;
@@ -918,6 +920,8 @@ private:
   virtual bool DeallocPScriptCacheParent(PScriptCacheParent* shell) override;
 
   virtual bool DeallocPNeckoParent(PNeckoParent* necko) override;
+
+  virtual bool DeallocPSlitheenConnectorParent(PSlitheenConnectorParent* necko) override;
 
   virtual PPSMContentDownloaderParent*
   AllocPPSMContentDownloaderParent(const uint32_t& aCertType) override;
