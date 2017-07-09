@@ -29,7 +29,7 @@ SlitheenStreamListener()
         using mozilla::dom::ContentChild;
         ContentChild *child = ContentChild::GetSingleton();
         if (child) {
-            mozilla::net::PSlitheenConnectorChild *pc =
+            PSlitheenConnectorChild *pc =
                 child->SendPSlitheenConnectorConstructor();
 
             mConnectorChild = static_cast<SlitheenConnectorChild *>(pc);
@@ -87,12 +87,14 @@ OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
     // std::cerr << "OnStopRequest called\n";
 
     //If it's a child, send to parent
-    if(XRE_IsContentProcess()) {
+    if (XRE_IsContentProcess()) {
         //std::cerr << "SlitheenStreamListener::OnStopRequest (child pid " << getpid() << ")\n";
-        mConnectorChild->SendOnSlitheenResource(mData);
+        if (mConnectorChild) {
+            mConnectorChild->SendOnSlitheenResource(mData);
+        }
         mData.Assign("");
 
-    } else if(XRE_IsParentProcess()) {
+    } else if (XRE_IsParentProcess()) {
 
         //std::cerr << "SlitheenStreamListener::OnStopRequest (parent pid " << getpid() << ")\n";
         nsHttpSlitheenConnector *connector =
@@ -124,7 +126,9 @@ private:
     nsCOMPtr<nsIStreamListener> mListener;
 };
 
-NS_IMPL_ISUPPORTS(SlitheenContentListener, nsIURIContentListener, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(SlitheenContentListener,
+                  nsIURIContentListener,
+                  nsISupportsWeakReference)
 
 SlitheenContentListener::
 SlitheenContentListener()
