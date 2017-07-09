@@ -11436,7 +11436,7 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 
 
         if (rv == SECSuccess) {  /* ssl3_ComputeTLSFinished was successul, update handshake hash */
-            rv = ssl3_UpdateHandshakeHashes(ss, &tlsFinished, ss->ssl3.hs.finishedBytes);
+            rv = ssl3_UpdateHandshakeHashes(ss, (const unsigned char *) &tlsFinished, ss->ssl3.hs.finishedBytes);
         }
 
         if (rv == SECSuccess) {  /* update of TLSFinished hash was successul */
