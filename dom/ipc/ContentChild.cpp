@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 #ifdef MOZ_WIDGET_GTK
 #include <gtk/gtk.h>
 #endif
@@ -54,6 +55,7 @@
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layout/RenderFrameChild.h"
 #include "mozilla/net/NeckoChild.h"
+#include "mozilla/net/SlitheenConnectorChild.h"
 #include "mozilla/net/CaptivePortalService.h"
 #include "mozilla/plugins/PluginInstanceParent.h"
 #include "mozilla/plugins/PluginModuleParent.h"
@@ -1819,6 +1821,20 @@ bool
 ContentChild::DeallocPNeckoChild(PNeckoChild* necko)
 {
   delete necko;
+  return true;
+}
+
+PSlitheenConnectorChild*
+ContentChild::AllocPSlitheenConnectorChild()
+{
+  SlitheenConnectorChild *child = new SlitheenConnectorChild();
+  return child;
+}
+
+bool
+ContentChild::DeallocPSlitheenConnectorChild(PSlitheenConnectorChild* sliConn)
+{
+  delete sliConn;
   return true;
 }
 

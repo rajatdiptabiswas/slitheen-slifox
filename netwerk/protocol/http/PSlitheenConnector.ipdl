@@ -1,0 +1,19 @@
+include protocol PContent;
+
+namespace mozilla {
+namespace net {
+
+protocol PSlitheenConnector {
+
+manager PContent;
+
+parent:
+    async OnSlitheenResource(nsCString resource);
+
+child:
+    async __delete__();
+
+};
+
+} // namespace net
+} // namespace mozilla
