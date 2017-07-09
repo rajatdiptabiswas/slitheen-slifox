@@ -2,6 +2,7 @@
 #define nsHttpSlitheenConnector_h__
 
 #include "nsIURIContentListener.h"
+#include "SlitheenConnectorChild.h"
 
 #include <queue>
 
@@ -98,6 +99,7 @@ private:
     virtual ~SlitheenStreamListener();
 
     nsCString mData;
+    SlitheenConnectorChild *mConnectorChild;
 };
 
 } // namespace net

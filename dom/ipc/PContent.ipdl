@@ -23,6 +23,7 @@ include protocol PImageBridge;
 include protocol PMedia;
 include protocol PMemoryReportRequest;
 include protocol PNecko;
+include protocol PSlitheenConnector;
 // FIXME This is pretty ridiculous, but we have to keep the order of the
 //       following 4 includes, or the parser is confused about PGMPContent
 //       bridging PContent and PGMP. As soon as it registers the bridge between
@@ -254,6 +255,7 @@ nested(upto inside_cpow) sync protocol PContent
     manages PMedia;
     manages PMemoryReportRequest;
     manages PNecko;
+    manages PSlitheenConnector;
     manages POfflineCacheUpdate;
     manages PPrinting;
     manages PSendStream;
@@ -684,6 +686,8 @@ parent:
     async PHeapSnapshotTempFileHelper();
 
     async PNecko();
+
+    async PSlitheenConnector();
 
     async PPrinting();
 

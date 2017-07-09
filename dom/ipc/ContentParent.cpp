@@ -83,6 +83,7 @@
 #include "mozilla/media/MediaParent.h"
 #include "mozilla/Move.h"
 #include "mozilla/net/NeckoParent.h"
+#include "mozilla/net/SlitheenConnectorParent.h"
 #include "mozilla/plugins/PluginBridge.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProcessHangMonitor.h"
@@ -3285,6 +3286,20 @@ bool
 ContentParent::DeallocPNeckoParent(PNeckoParent* necko)
 {
   delete necko;
+  return true;
+}
+
+PSlitheenConnectorParent*
+ContentParent::AllocPSlitheenConnectorParent()
+{
+  SlitheenConnectorParent *parent = new SlitheenConnectorParent();
+  return parent;
+}
+
+bool
+ContentParent::DeallocPSlitheenConnectorParent(PSlitheenConnectorParent* sliConn)
+{
+  delete sliConn;
   return true;
 }
 
