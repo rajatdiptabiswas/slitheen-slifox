@@ -26,17 +26,6 @@ SlitheenStreamListener()
     if(XRE_IsContentProcess()) {
         std::cerr << "New stream listener in content process\n";
 
-        using mozilla::dom::ContentChild;
-        ContentChild *child = ContentChild::GetSingleton();
-        if (child) {
-            PSlitheenConnectorChild *pc =
-                child->SendPSlitheenConnectorConstructor();
-
-            mConnectorChild = static_cast<SlitheenConnectorChild *>(pc);
-
-        } else {
-            std::cerr << "Failed to get child. pid = " << getpid() << "\n";
-        }
 
     } else {
         std::cerr << "New stream listener in parent process\n";
@@ -89,6 +78,19 @@ OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
     //If it's a child, send to parent
     if (XRE_IsContentProcess()) {
         //std::cerr << "SlitheenStreamListener::OnStopRequest (child pid " << getpid() << ")\n";
+
+        using mozilla::dom::ContentChild;
+        ContentChild *child = ContentChild::GetSingleton();
+        if (child) {
+            PSlitheenConnectorChild *pc =
+                child->SendPSlitheenConnectorConstructor();
+
+            mConnectorChild = static_cast<SlitheenConnectorChild *>(pc);
+
+        } else {
+            std::cerr << "Failed to get child. pid = " << getpid() << "\n";
+        }
+
         if (mConnectorChild) {
             mConnectorChild->SendOnSlitheenResource(mData);
         }
