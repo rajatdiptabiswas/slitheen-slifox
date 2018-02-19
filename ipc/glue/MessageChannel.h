@@ -142,6 +142,9 @@ class MessageChannel : HasResultCodes, MessageLoop::DestructionObserver {
 
   IToplevelProtocol* Listener() const { return mListener; }
 
+  //TODO: added as workaround for slitheen
+  MessageLoop * GetWorkerLoop();
+
   // "Open" from the perspective of the transport layer; the underlying
   // socketpair/pipe should already be created.
   //
