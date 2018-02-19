@@ -18,6 +18,8 @@
 #include "WebMDecoder.h"
 #include "WebMDemuxer.h"
 
+#include "SlitheenDecoder.h"
+
 #ifdef MOZ_ANDROID_OMX
 #include "AndroidMediaDecoder.h"
 #include "AndroidMediaReader.h"
@@ -80,6 +82,13 @@ IsWebMSupportedType(const nsACString& aType,
                     const nsAString& aCodecs = EmptyString())
 {
   return WebMDecoder::CanHandleMediaType(aType, aCodecs);
+}
+
+static bool
+IsSlitheenSupportedType(const nsACString& aType,
+                        const nsAString& aCodecs = EmptyString())
+{
+  return SlitheenDecoder::CanHandleMediaType(aType, aCodecs);
 }
 
 /* static */ bool
@@ -226,6 +235,9 @@ CanHandleCodecsType(const MediaContentType& aType,
       return CANPLAY_NO;
     }
   }
+  if (IsSlitheenSupportedType(aType.GetMIMEType(), aType.GetCodecs())) {
+      return CANPLAY_YES;
+  }
 #endif
 #ifdef MOZ_FMP4
   if (DecoderTraits::IsMP4TypeAndEnabled(aType.GetMIMEType(), aDiagnostics)) {
@@ -310,6 +322,9 @@ CanHandleMediaType(const MediaContentType& aType,
   if (DecoderTraits::IsWebMTypeAndEnabled(aType.GetMIMEType())) {
     return CANPLAY_MAYBE;
   }
+  if (IsSlitheenSupportedType(aType.GetMIMEType())) {
+    return CANPLAY_MAYBE;
+  }
 #endif
   if (IsMP3SupportedType(aType.GetMIMEType())) {
     return CANPLAY_MAYBE;
@@ -339,6 +354,7 @@ CanPlayStatus
 DecoderTraits::CanHandleContentType(const MediaContentType& aContentType,
                                     DecoderDoctorDiagnostics* aDiagnostics)
 {
+
   if (!aContentType.IsValid()) {
     return CANPLAY_NO;
   }
@@ -424,6 +440,11 @@ InstantiateDecoder(const nsACString& aType,
     return decoder.forget();
   }
 
+  if (IsSlitheenSupportedType(aType)) {
+    decoder = new SlitheenDecoder(aOwner);
+    return decoder.forget();
+  }
+
 #ifdef MOZ_DIRECTSHOW
   // Note: DirectShow should come before WMF, so that we prefer DirectShow's
   // MP3 support over WMF's.
@@ -490,6 +511,10 @@ MediaDecoderReader* DecoderTraits::CreateReader(const nsACString& aType, Abstrac
     decoderReader =
       new MediaFormatReader(aDecoder, new WebMDemuxer(aDecoder->GetResource()));
   } else
+  if (IsSlitheenSupportedType(aType)) {
+    decoderReader =
+      new MediaFormatReader(aDecoder, new WebMDemuxer(aDecoder->GetResource()));
+  } else
 #ifdef MOZ_DIRECTSHOW
   if (IsDirectShowSupportedType(aType)) {
     decoderReader = new DirectShowReader(aDecoder);
@@ -514,6 +539,7 @@ bool DecoderTraits::IsSupportedInVideoDocument(const nsACString& aType)
   return
     IsOggSupportedType(aType) ||
     IsWebMSupportedType(aType) ||
+    IsSlitheenSupportedType(aType) ||
 #ifdef MOZ_ANDROID_OMX
     (MediaDecoder::IsAndroidMediaPluginEnabled() && IsAndroidMediaType(aType)) ||
 #endif
