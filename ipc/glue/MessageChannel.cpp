@@ -772,6 +772,12 @@ MessageChannel::Clear()
     }
 }
 
+MessageLoop *
+MessageChannel::GetWorkerLoop()
+{
+    return mWorkerLoop;
+}
+
 bool
 MessageChannel::Open(Transport* aTransport, MessageLoop* aIOLoop, Side aSide)
 {
