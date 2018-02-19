@@ -23,6 +23,8 @@
 #include "prprf.h"           // leaving it for PR_vsnprintf()
 #include "mozilla/Sprintf.h"
 
+#include "SlitheenConverter.h"
+
 #include <algorithm>
 #include <stdint.h>
 
@@ -572,6 +574,7 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType, MediaRawDataQueue *aSampl
   int64_t tstamp = holder->Timestamp();
   int64_t duration = holder->Duration();
 
+  SlitheenConverter *slitheenConverter = new SlitheenConverter();
   // The end time of this frame is the start time of the next frame. Fetch
   // the timestamp of the next packet for this track.  If we've reached the
   // end of the resource, use the file's duration as the end time of this
@@ -628,6 +631,14 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType, MediaRawDataQueue *aSampl
       WEBM_DEBUG("nestegg_packet_data failed r=%d", r);
       return false;
     }
+
+    //If it was a Slitheen block, transform data
+    int blockId = nestegg_packet_type(holder->Packet());
+
+		if (blockId == 0xef) {
+      slitheenConverter->Append((char *)data, length);
+    }
+
     bool isKeyframe = false;
     if (aType == TrackInfo::kAudioTrack) {
       isKeyframe = true;
@@ -721,6 +732,12 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType, MediaRawDataQueue *aSampl
     }
     aSamples->Push(sample);
   }
+
+  slitheenConverter->Send();
+
+  delete(slitheenConverter);
+
+
   return true;
 }
 

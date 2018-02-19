@@ -92,6 +92,9 @@ class MessageChannel : HasResultCodes
     explicit MessageChannel(IToplevelProtocol *aListener);
     ~MessageChannel();
 
+    //TODO: added as workaround for slitheen
+    MessageLoop * GetWorkerLoop();
+
     // "Open" from the perspective of the transport layer; the underlying
     // socketpair/pipe should already be created.
     //

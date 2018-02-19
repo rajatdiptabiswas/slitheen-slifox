@@ -32,6 +32,7 @@ DIRS += [
     'mediasource',
     'ogg',
     'platforms',
+    'slitheen',
     'systemservices',
     'wave',
     'webaudio',
