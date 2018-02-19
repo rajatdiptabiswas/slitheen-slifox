@@ -8,6 +8,7 @@
 #define MOZILLA_MEDIASTREAMLISTENER_h_
 
 #include "StreamTracks.h"
+#include "MediaStreamGraph.h"
 
 #include "MediaStreamGraph.h"
 

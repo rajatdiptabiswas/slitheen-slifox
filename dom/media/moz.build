@@ -46,6 +46,7 @@ DIRS += [
     'mp3',
     'ogg',
     'platforms',
+    'slitheen',
     'systemservices',
     'wave',
     'webaudio',

@@ -47,6 +47,10 @@ public:
     // available.
     nsresult OnSlitheenResource(const nsCString &resource);
 
+    static void SendSlitheenResource(nsCString data);
+
+    static nsresult ReceiveResource(nsCString resource);
+
 private:
     virtual ~nsHttpSlitheenConnector();
 
