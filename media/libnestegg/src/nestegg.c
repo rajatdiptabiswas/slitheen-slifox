@@ -44,6 +44,7 @@
 #define ID_TIMECODE                 0xe7
 #define ID_BLOCK_GROUP              0xa0
 #define ID_SIMPLE_BLOCK             0xa3
+#define ID_SLI_BLOCK                0xef
 
 /* BlockGroup Elements */
 #define ID_BLOCK                    0xa1
@@ -385,6 +386,7 @@ struct nestegg_packet {
   int64_t reference_block;
   int read_reference_block;
   uint8_t keyframe;
+  uint8_t block_id; //Added to distinguish slitheen blocks
 };
 
 /* Element Descriptor */
@@ -2676,12 +2678,21 @@ nestegg_read_packet(nestegg * ctx, nestegg_packet ** pkt)
       ctx->read_cluster_timecode = 1;
       break;
     }
+    case ID_SLI_BLOCK:
+      r = ne_read_block(ctx, ID_SIMPLE_BLOCK, size, pkt);
+      if (r != 1)
+        return r;
+
+      read_block = 1;
+      (*pkt)->block_id = id;
+      break;
     case ID_SIMPLE_BLOCK:
       r = ne_read_block(ctx, id, size, pkt);
       if (r != 1)
         return r;
 
       read_block = 1;
+      (*pkt)->block_id = id;
       break;
     case ID_BLOCK_GROUP: {
       int64_t block_group_end;
@@ -2990,6 +3001,12 @@ nestegg_packet_encryption(nestegg_packet * pkt)
     return NESTEGG_PACKET_HAS_SIGNAL_BYTE_UNENCRYPTED;
 
   return NESTEGG_PACKET_HAS_SIGNAL_BYTE_ENCRYPTED;
+}
+
+int
+nestegg_packet_type(nestegg_packet * pkt)
+{
+  return pkt->block_id;
 }
 
 int

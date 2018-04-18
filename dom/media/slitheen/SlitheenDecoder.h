@@ -32,6 +32,14 @@ public:
 
   static bool CanHandleMediaType(const nsAString& aContentType);
 
+  // Returns true if aData starts with a Slitheen segment.
+  // If a Slitheen header is present, this method will replace the header value
+  // with a valid Cluster header.
+  // Return NS_OK if segment is present, NS_ERROR_NOT_AVAILABLE if insufficient
+  // data is currently available to make a determination. Any other value
+  // indicates an error.
+  static MediaResult IsSlitheenSegmentPresent(MediaByteBuffer* aData);
+
   void GetMozDebugReaderData(nsAString& aString) override;
 
 private:

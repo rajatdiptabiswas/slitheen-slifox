@@ -39,8 +39,8 @@ SlitheenDecoder::CanHandleMediaType(const nsACString& aMIMETypeExcludingCodecs,
     return false;
   }
 
-  std::cerr << "In SlitheenDecoder::CanHandleMediaType\n";
-  std::cerr << "MIMEType: " << aMIMETypeExcludingCodecs.BeginReading() << "\n";
+  //std::cerr << "In SlitheenDecoder::CanHandleMediaType\n";
+  //std::cerr << "MIMEType: " << aMIMETypeExcludingCodecs.BeginReading() << "\n";
 
   const bool isSlitheenAudio = aMIMETypeExcludingCodecs.EqualsASCII("sli/theena");
   const bool isSlitheenVideo = aMIMETypeExcludingCodecs.EqualsASCII("sli/theenv");
@@ -61,8 +61,8 @@ SlitheenDecoder::CanHandleMediaType(const nsAString& aContentType)
     return false;
   }
 
-  std::cerr << "SlitheenDecoder::CanHandleMediaType (static?)\n";
-  std::cerr << "Content Type: " << mimeType.get() << "\n";
+  //std::cerr << "SlitheenDecoder::CanHandleMediaType (static?)\n";
+  //std::cerr << "Content Type: " << mimeType.get() << "\n";
   nsString codecs;
   parser.GetParameter("codecs", codecs);
 
@@ -76,6 +76,33 @@ SlitheenDecoder::GetMozDebugReaderData(nsAString& aString)
   if (mReader) {
     mReader->GetMozDebugReaderData(aString);
   }
+}
+
+/* static */
+MediaResult
+SlitheenDecoder::IsSlitheenSegmentPresent(MediaByteBuffer* aData)
+{
+
+  std::cerr << "In SlitheenDecoder::IsSlitheenSegmentPresent\n";
+  if (aData->Length() < 4) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  // 0x16736c69 //Slitheen
+  if ((*aData)[0] == 0x16 && (*aData)[1] == 0x73 && (*aData)[2] == 0x6c &&
+      (*aData)[3] == 0x69) {
+
+    //change header to Cluster header
+    (*aData)[0] = 0x1f;
+    (*aData)[1] = 0x43;
+    (*aData)[2] = 0xb6;
+    (*aData)[3] = 0x75;
+
+    std::cerr << "Found Slitheen segment!\n";
+    return NS_OK;
+  }
+
+  return MediaResult(NS_ERROR_FAILURE, RESULT_DETAIL("Invalid webm content"));
 }
 
 } // namespace mozilla

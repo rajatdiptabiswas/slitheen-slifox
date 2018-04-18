@@ -9,6 +9,8 @@
 #include "nsThreadUtils.h"
 #include <algorithm>
 
+#include "SlitheenConverter.h"
+
 extern mozilla::LazyLogModule gMediaDemuxerLog;
 #define WEBM_DEBUG(arg, ...) MOZ_LOG(gMediaDemuxerLog, mozilla::LogLevel::Debug, ("WebMBufferedParser(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
@@ -47,6 +49,7 @@ bool WebMBufferedParser::Append(const unsigned char* aBuffer, uint32_t aLength,
   static const unsigned char BLOCKGROUP_ID = 0xa0;
   static const unsigned char BLOCK_ID = 0xa1;
   static const unsigned char SIMPLEBLOCK_ID = 0xa3;
+  static const unsigned char SLIBLOCK_ID = 0xef;
   static const uint32_t BLOCK_TIMECODE_LENGTH = 2;
 
   static const unsigned char CLUSTER_SYNC_ID[] = { 0x1f, 0x43, 0xb6, 0x75 };
@@ -118,6 +121,8 @@ bool WebMBufferedParser::Append(const unsigned char* aBuffer, uint32_t aLength,
       case BLOCKGROUP_ID:
         mState = READ_ELEMENT_ID;
         break;
+      case SLIBLOCK_ID:
+        /* FALLTHROUGH */
       case SIMPLEBLOCK_ID:
         /* FALLTHROUGH */
       case BLOCK_ID:

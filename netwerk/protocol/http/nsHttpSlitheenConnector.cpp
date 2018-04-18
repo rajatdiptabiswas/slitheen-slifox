@@ -1,15 +1,18 @@
-#include <iostream>
 
 #include "mozilla/dom/ContentChild.h"
 #include "nsWeakReference.h"
 #include "nsIStreamListener.h"
 #include "nsIInputStream.h"
+#include "nsISupports.h"
+#include "nsIThread.h"
+#include "nsIThreadManager.h"
 #include "nsServiceManagerUtils.h"
 #include "nsCURILoader.h"
 #include "prio.h"
 #include "nsHttpSlitheenConnector.h"
 #include "SlitheenConnectorChild.h"
 
+#include <iostream>
 #define SLITHEEN_CONTENT_TYPE "sli/theen"
 
 namespace mozilla {
@@ -558,6 +561,60 @@ OnSlitheenResource(const nsCString &resource)
         // this resource will just be lost.
         std::cerr << "Slitheen resource lost due to error writing to SOCKS proxy\n";
     }
+    return NS_OK;
+}
+
+void
+nsHttpSlitheenConnector::
+SendSlitheenResource(nsCString data)
+{
+    SlitheenConnectorChild *connectorChild;
+
+    using mozilla::dom::ContentChild;
+    ContentChild *child = ContentChild::GetSingleton();
+
+    if (child) {
+
+        PSlitheenConnectorChild *pc =
+            child->SendPSlitheenConnectorConstructor();
+        connectorChild = static_cast<SlitheenConnectorChild *>(pc);
+
+        if (connectorChild) {
+            connectorChild->SendOnSlitheenResource(data);
+        }
+
+    } else {
+        std::cerr << "Failed to get child. pid = " << getpid() << "\n";
+    }
+
+}
+
+nsresult
+nsHttpSlitheenConnector::
+ReceiveResource(nsCString resource)
+{
+    //If it's a child, send to parent
+    if (XRE_IsContentProcess()) {
+
+        RefPtr<Runnable> runnable =
+            NS_NewRunnableFunction([resource]() {
+                    net::nsHttpSlitheenConnector::SendSlitheenResource(resource);
+                    });
+
+        using mozilla::dom::ContentChild;
+        ContentChild *child = ContentChild::GetSingleton();
+
+        if (child) {
+            child->GetIPCChannel()->GetWorkerLoop()->PostTask(runnable.forget());
+        }
+    } else if (XRE_IsParentProcess()) {
+        nsHttpSlitheenConnector *connector =
+            nsHttpSlitheenConnector::getInstance();
+        if (connector) {
+            connector->OnSlitheenResource(resource);
+        }
+    }
+
     return NS_OK;
 }
 

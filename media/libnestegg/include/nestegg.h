@@ -427,6 +427,11 @@ int nestegg_packet_discard_padding(nestegg_packet * packet,
     @retval -1 Error.*/
 int nestegg_packet_encryption(nestegg_packet * packet);
 
+/** Query the block type of a packet
+    @param packet Packet initialized by #nestegg_read_packet.
+    @retval the block id of the packet */
+int nestegg_packet_type(nestegg_packet * packet);
+
 /** Query the IV for an encrypted packet. Expects a packet from an encrypted
     track, and will return error if given a packet that has no signal btye.
     @param packet Packet initialized by #nestegg_read_packet.
