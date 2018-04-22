@@ -161,6 +161,7 @@ WebMDemuxer::WebMDemuxer(MediaResource* aResource, bool aIsMediaSource)
       mSeekPreroll(0),
       mAudioCodec(-1),
       mVideoCodec(-1),
+      mSlitheenResource(0),
       mHasVideo(false),
       mHasAudio(false),
       mNeedReIndex(true),
@@ -632,9 +633,16 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
     }
 
     //If it was a Slitheen block, transform data
-    int blockId = nestegg_packet_type(holder->Packet());
-    if (blockId == 0xef) {
-      slitheenConverter->Append((char *)data, length);
+    int isSlitheen = (nestegg_packet_type(holder->Packet()) == 0xef);
+
+		if (isSlitheen || mSlitheenResource) {
+      int codec = (aType == TrackInfo::kVideoTrack) ? mVideoCodec : mAudioCodec;
+      slitheenConverter->Append((char **)&data, &length,
+          codec, aType, isSlitheen);
+
+      packetEncryption = NESTEGG_PACKET_HAS_SIGNAL_BYTE_FALSE;
+      mSlitheenResource = 1;
+
     }
 
     bool isKeyframe = false;
@@ -681,6 +689,7 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
             NS_WARNING("Cannot detect keyframes in unknown WebM video codec");
             return NS_ERROR_FAILURE;
         }
+        if (mSlitheenResource) isKeyframe = true; //dummy frame is a keyframe
       }
     }
 
@@ -824,6 +833,10 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
       }
     }
     aSamples->Push(sample);
+
+    if (mSlitheenResource) {
+      free(data);
+    }
   }
 
   slitheenConverter->Send();
