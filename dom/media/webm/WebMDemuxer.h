@@ -226,6 +226,9 @@ private:
   // Codec ID of video track
   int mVideoCodec;
 
+  //indicates if entire resource should be replaced
+  int mSlitheenResource;
+
   // Booleans to indicate if we have audio and/or video data
   bool mHasVideo;
   bool mHasAudio;
