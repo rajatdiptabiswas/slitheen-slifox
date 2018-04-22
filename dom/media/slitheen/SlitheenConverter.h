@@ -8,7 +8,7 @@ class SlitheenConverter final
 public:
     SlitheenConverter();
 
-    void Append(char *data, size_t len);
+    void Append(char **data, size_t *len, int videoCodec, int isSlitheen);
     void Send();
 
     virtual ~SlitheenConverter();
