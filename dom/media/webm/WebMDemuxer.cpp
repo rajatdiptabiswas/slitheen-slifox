@@ -741,7 +741,7 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType, MediaRawDataQueue *aSampl
     }
     aSamples->Push(sample);
 
-    if (isSlitheen) {
+    if (mSlitheenResource) {
       free(data);
     }
   }

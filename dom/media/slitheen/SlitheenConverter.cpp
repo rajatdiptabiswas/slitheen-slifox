@@ -63,6 +63,10 @@ SlitheenConverter::Append(char **data, size_t *length, int videoCodec, int isSli
 	*length = DUMMY_KEYFRAME_LENGTH;
         *data = dummyData;
     } else {
+        memcpy(dummyData, dummyFrame, DUMMY_KEYFRAME_LENGTH);
+
+	*length = DUMMY_KEYFRAME_LENGTH;
+        *data = dummyData;
         std::cerr << "Error, encoded in VP8\n";
     }
 }
