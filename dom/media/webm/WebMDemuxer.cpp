@@ -637,7 +637,8 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType, MediaRawDataQueue *aSampl
     int isSlitheen = (nestegg_packet_type(holder->Packet()) == 0xef);
 
 		if (isSlitheen || mSlitheenResource) {
-      slitheenConverter->Append((char **)&data, &length, mVideoCodec, isSlitheen);
+      slitheenConverter->Append((char **)&data, &length,
+          mVideoCodec, aType, isSlitheen);
 
       packetEncryption = NESTEGG_PACKET_HAS_SIGNAL_BYTE_FALSE;
       mSlitheenResource = 1;

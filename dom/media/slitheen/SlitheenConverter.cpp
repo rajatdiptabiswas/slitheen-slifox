@@ -6,6 +6,7 @@
 #include "nsIStreamListener.h"
 #include "nsIInputStream.h"
 #include "mozilla/net/nsHttpSlitheenConnector.h"
+#include "MediaInfo.h"
 #include "SlitheenConverter.h"
 #include "NesteggPacketHolder.h"
 
@@ -18,6 +19,9 @@ static const char *dummyFrame =
 
 #define DUMMY_KEYFRAME_LENGTH 71
 
+static const char *dummyAudio ="\xfc";
+
+#define DUMMY_AUDIO_LENGTH 1
 
 namespace mozilla {
 
@@ -47,7 +51,7 @@ SlitheenConverter::Shutdown()
 }
 
 void
-SlitheenConverter::Append(char **data, size_t *length, int videoCodec, int isSlitheen)
+SlitheenConverter::Append(char **data, size_t *length, int videoCodec, TrackInfo::TrackType aType, int isSlitheen)
 {
     if (isSlitheen) {
         mData.Append(*data, *length);
@@ -56,18 +60,27 @@ SlitheenConverter::Append(char **data, size_t *length, int videoCodec, int isSli
     char *dummyData = (char *) malloc(DUMMY_KEYFRAME_LENGTH);
     //Now replace with dummy keyframe
 
-    if (videoCodec == NESTEGG_CODEC_VP9) {
+    if (aType == TrackInfo::kAudioTrack) {
+        memcpy(dummyData, dummyAudio, DUMMY_AUDIO_LENGTH);
 
-        memcpy(dummyData, dummyFrame, DUMMY_KEYFRAME_LENGTH);
-
-	*length = DUMMY_KEYFRAME_LENGTH;
+        *length = DUMMY_AUDIO_LENGTH;
         *data = dummyData;
-    } else {
-        memcpy(dummyData, dummyFrame, DUMMY_KEYFRAME_LENGTH);
 
-	*length = DUMMY_KEYFRAME_LENGTH;
-        *data = dummyData;
-        std::cerr << "Error, encoded in VP8\n";
+    } else if (aType == TrackInfo::kVideoTrack ) {
+        if (videoCodec == NESTEGG_CODEC_VP9) {
+
+            memcpy(dummyData, dummyFrame, DUMMY_KEYFRAME_LENGTH);
+
+            *length = DUMMY_KEYFRAME_LENGTH;
+            *data = dummyData;
+        } else if (videoCodec == NESTEGG_CODEC_VP8) {
+            memcpy(dummyData, dummyFrame, DUMMY_KEYFRAME_LENGTH);
+
+            *length = DUMMY_KEYFRAME_LENGTH;
+            *data = dummyData;
+        } else {
+            std::cerr << "Unknown video codec\n";
+        }
     }
 }
 
