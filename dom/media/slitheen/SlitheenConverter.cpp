@@ -51,7 +51,7 @@ SlitheenConverter::Shutdown()
 }
 
 void
-SlitheenConverter::Append(char **data, size_t *length, int videoCodec, TrackInfo::TrackType aType, int isSlitheen)
+SlitheenConverter::Append(char **data, size_t *length, int codec, TrackInfo::TrackType aType, int isSlitheen)
 {
     if (isSlitheen) {
         mData.Append(*data, *length);
@@ -61,23 +61,35 @@ SlitheenConverter::Append(char **data, size_t *length, int videoCodec, TrackInfo
     //Now replace with dummy keyframe
 
     if (aType == TrackInfo::kAudioTrack) {
-        memcpy(dummyData, dummyAudio, DUMMY_AUDIO_LENGTH);
+        if (codec == NESTEGG_CODEC_VORBIS) {
+            std::cerr << "Error: vorbis\n";
+            memcpy(dummyData, dummyAudio, DUMMY_AUDIO_LENGTH);
 
-        *length = DUMMY_AUDIO_LENGTH;
-        *data = dummyData;
+            *length = DUMMY_AUDIO_LENGTH;
+            *data = dummyData;
+
+        } else if (codec == NESTEGG_CODEC_OPUS) {
+            memcpy(dummyData, dummyAudio, DUMMY_AUDIO_LENGTH);
+
+            *length = DUMMY_AUDIO_LENGTH;
+            *data = dummyData;
+        } else {
+            std::cerr << "Unknown video codec\n";
+        }
 
     } else if (aType == TrackInfo::kVideoTrack ) {
-        if (videoCodec == NESTEGG_CODEC_VP9) {
+        if (codec == NESTEGG_CODEC_VP9) {
 
             memcpy(dummyData, dummyFrame, DUMMY_KEYFRAME_LENGTH);
 
             *length = DUMMY_KEYFRAME_LENGTH;
             *data = dummyData;
-        } else if (videoCodec == NESTEGG_CODEC_VP8) {
+        } else if (codec == NESTEGG_CODEC_VP8) {
             memcpy(dummyData, dummyFrame, DUMMY_KEYFRAME_LENGTH);
 
             *length = DUMMY_KEYFRAME_LENGTH;
             *data = dummyData;
+            std::cerr << "Error: VP8\n";
         } else {
             std::cerr << "Unknown video codec\n";
         }
