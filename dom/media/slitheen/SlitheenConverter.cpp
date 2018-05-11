@@ -20,6 +20,7 @@ static const char *dummyFrame =
 #define DUMMY_KEYFRAME_LENGTH 71
 
 static const char *dummyAudio ="\xfc";
+static const char *dummyVorbis ="\x00";
 
 #define DUMMY_AUDIO_LENGTH 1
 
@@ -62,8 +63,7 @@ SlitheenConverter::Append(char **data, size_t *length, int codec, TrackInfo::Tra
 
     if (aType == TrackInfo::kAudioTrack) {
         if (codec == NESTEGG_CODEC_VORBIS) {
-            std::cerr << "Error: vorbis\n";
-            memcpy(dummyData, dummyAudio, DUMMY_AUDIO_LENGTH);
+            memcpy(dummyData, dummyVorbis, DUMMY_AUDIO_LENGTH);
 
             *length = DUMMY_AUDIO_LENGTH;
             *data = dummyData;
