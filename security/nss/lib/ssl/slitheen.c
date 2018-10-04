@@ -210,6 +210,7 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
 
     res = slitheen_load_current_keys(&skeys);
     if (res < 0) {
+	ss->slitheenState = SSLSlitheenStateOff;
         return SECFailure;
     }
 
