@@ -210,29 +210,41 @@ SECKEY_CreateDHPrivateKey(SECKEYDHParams *param, SECKEYPublicKey **pubk, void *c
 SECKEYPrivateKey *
 SECKEY_CreateECPrivateKey(SECKEYECParams *param, SECKEYPublicKey **pubk, void *cx)
 {
+    return SECKEY_CreateECPrivateKeyPrivBytes(param, pubk, cx, NULL, 0);
+}
+
+/* A version of SECKEY_CreateECPrivateKey that allows you to specify the
+** bytes to use for the private key.
+*/
+SECKEYPrivateKey *
+SECKEY_CreateECPrivateKeyPrivBytes(SECKEYECParams *param,
+    SECKEYPublicKey **pubk, void *cx, CK_BYTE *privkeybytes,
+    unsigned int privkeylen)
+{
     SECKEYPrivateKey *privk;
     PK11SlotInfo *slot = PK11_GetBestSlot(CKM_EC_KEY_PAIR_GEN, cx);
     if (!slot) {
         return NULL;
     }
 
-    privk = PK11_GenerateKeyPairWithOpFlags(slot, CKM_EC_KEY_PAIR_GEN,
+    privk = PK11_GenerateKeyPairWithOpFlagsPrivBytes(slot, CKM_EC_KEY_PAIR_GEN,
                                             param, pubk,
                                             PK11_ATTR_SESSION |
                                                 PK11_ATTR_INSENSITIVE |
                                                 PK11_ATTR_PUBLIC,
                                             CKF_DERIVE, CKF_DERIVE |
                                                             CKF_SIGN,
-                                            cx);
+                                            cx, privkeybytes, privkeylen);
     if (!privk)
-        privk = PK11_GenerateKeyPairWithOpFlags(slot, CKM_EC_KEY_PAIR_GEN,
+        privk = PK11_GenerateKeyPairWithOpFlagsPrivBytes(slot, CKM_EC_KEY_PAIR_GEN,
                                                 param, pubk,
                                                 PK11_ATTR_SESSION |
                                                     PK11_ATTR_SENSITIVE |
                                                     PK11_ATTR_PRIVATE,
                                                 CKF_DERIVE, CKF_DERIVE |
                                                                 CKF_SIGN,
-                                                cx);
+                                                cx, privkeybytes,
+                                                privkeylen);
 
     PK11_FreeSlot(slot);
     return (privk);
