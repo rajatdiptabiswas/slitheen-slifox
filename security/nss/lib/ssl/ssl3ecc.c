@@ -478,11 +478,19 @@ ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
     SECKEYPublicKey *pubKey = NULL;
     SECKEYECParams ecParams = { siBuffer, NULL, 0 };
     sslEphemeralKeyPair *pair;
+    SECStatus rv = SECFailure;
 
     if (ssl_NamedGroup2ECParams(NULL, ecGroup, &ecParams) != SECSuccess) {
         return SECFailure;
     }
-    privKey = SECKEY_CreateECPrivateKey(&ecParams, &pubKey, ss->pkcs11PinArg);
+    if (ss->generateECDHEKeyCallback) {
+        rv = ss->generateECDHEKeyCallback(ss, ecGroup->bits, &ecParams,
+                                            &pubKey, &privKey);
+    }
+    if (rv != SECSuccess) {
+        privKey = SECKEY_CreateECPrivateKey(&ecParams, &pubKey,
+                                                ss->pkcs11PinArg);
+    }
     SECITEM_FreeItem(&ecParams, PR_FALSE);
 
     if (!privKey || !pubKey ||
