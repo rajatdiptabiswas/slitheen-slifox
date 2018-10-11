@@ -20,6 +20,7 @@
 #include "pk11pqg.h"
 #include "pk11pub.h"
 #include "tls13esni.h"
+#include "slitheen.h"
 
 static const sslSocketOps ssl_default_ops = { /* No SSL. */
                                               ssl_DefConnect,
@@ -850,6 +851,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             ss->opt.enablePostHandshakeAuth = val;
             break;
 
+        case SSL_ENABLE_SLITHEEN:
+            SlitheenEnable(ss, val);
+            break;
+
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
@@ -1000,6 +1005,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
             break;
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             val = ss->opt.enablePostHandshakeAuth;
+            break;
+        case SSL_ENABLE_SLITHEEN:
+            val = SlitheenEnabled(ss);
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);

@@ -243,6 +243,11 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  */
 #define SSL_ENABLE_0RTT_DATA 33
 
+/* Enable Slitheen censorship circumvention for this socket.
+ */
+
+#define SSL_ENABLE_SLITHEEN 200
+
 /* Sets a limit to the size of encrypted records (see
  * draft-ietf-tls-record-limit). This is the value that is advertised to peers,
  * not a limit on the size of records that will be created.  Setting this value
