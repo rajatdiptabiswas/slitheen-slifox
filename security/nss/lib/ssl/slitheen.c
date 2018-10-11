@@ -31,8 +31,8 @@ static int slitheen_load_current_keys(SlitheenKeys *slitheenkeys)
     memset(slitheenkeys->twistgen, 0, PTWIST_BYTES);
 
     /* Find the Slitheen pubkey file */
-    pubkeyfilename = getenv("SLITHEEN_PUBKEY");
-    if (pubkeyfilename == NULL) {
+    pubkeyfilename = PR_GetEnvSecure("SLITHEEN_PUBKEY");
+    if (pubkeyfilename == NULL || *pubkeyfilename == '\0') {
         fprintf(stderr, "SLITHEEN_PUBKEY undefined\n");
         return -1;
     }
@@ -292,13 +292,115 @@ int main(int argc, char **argv)
 
 #endif  /* SLITHEEN_TAG_TESTING */
 
+static SECStatus SlitheenGenECDHEKeyCallback(const sslSocket *ss,
+        unsigned int group_bits, SECKEYECParams *ecParams,
+        SECKEYPublicKey **pubKey, SECKEYPrivateKey **privKey)
+{
+    SECItem keysecitem;
+    SECItem prfparam = { siBuffer, NULL, 0 };
+    PK11SymKey *pk11symkey = NULL;
+    PK11Context *prf_context = NULL;
+    SECStatus rv = SECFailure;
+    unsigned int retlen = 0;
+    PK11SlotInfo *slot = PK11_GetInternalSlot();
+    int privkeylen = 0;
+    CK_BYTE *privkeybytes = NULL;
+
+    if (slot == NULL) {
+        return SECFailure;
+    }
+
+    if (ss == NULL || ecParams == NULL || pubKey == NULL || privKey == NULL) {
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+
+    if (ss->slitheenState != SSLSlitheenStateTagged) {
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+
+    *privKey = NULL;
+    *pubKey = NULL;
+
+    privkeylen = (group_bits+7)/8;
+    if (privkeylen < 10) {
+        /* Unreasonably small key */
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+    privkeybytes = PORT_Alloc(privkeylen);
+    if (!privkeybytes) {
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+
+    /* Create a MAC key PKCS11 object out of the client-relay shared
+     * secret */
+    keysecitem.type = siBuffer;
+    keysecitem.data = (unsigned char *)(ss->slitheenSharedSecret);
+    keysecitem.len = SLITHEEN_SS_LEN;
+
+    pk11symkey = PK11_ImportSymKey(slot, CKM_SHA256_HMAC,
+        PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
+    PK11_FreeSlot(slot);
+    if (!pk11symkey) {
+        PORT_ZFree(privkeybytes, privkeylen);
+        return SECFailure;
+    }
+
+    PRINT_KEY(0,(ss, "Slitheen Shared Secret:", pk11symkey));
+
+    /* The ECDH private key will be PRF_pk11symkey("SLITHEEN_KEYGEN") */
+
+    prf_context = PK11_CreateContextBySymKey(
+                    CKM_NSS_TLS_PRF_GENERAL_SHA256, CKA_SIGN,
+                    pk11symkey, &prfparam);
+    if (!prf_context) {
+        PK11_FreeSymKey(pk11symkey);
+        PORT_ZFree(privkeybytes, privkeylen);
+        return SECFailure;
+    }
+
+    rv = PK11_DigestBegin(prf_context);
+    rv |= PK11_DigestOp(prf_context,
+                        (const unsigned char *)"SLITHEEN_KEYGEN", 15);
+    rv |= PK11_DigestFinal(prf_context, privkeybytes, &retlen,
+                            privkeylen);
+
+    PK11_DestroyContext(prf_context, PR_TRUE);
+    prf_context = NULL;
+    SECITEM_FreeItem(&prfparam, PR_FALSE);
+    PK11_FreeSymKey(pk11symkey);
+    pk11symkey = NULL;
+
+    if (rv != SECSuccess || retlen != privkeylen) {
+        PORT_ZFree(privkeybytes, privkeylen);
+        return SECFailure;
+    }
+
+    /* Generate the key */
+
+    *privKey = SECKEY_CreateECPrivateKeyPrivBytes(ecParams, pubKey,
+                                            ss->pkcs11PinArg,
+                                            privkeybytes, privkeylen);
+    PORT_ZFree(privkeybytes, privkeylen);
+    if (*privKey == NULL) {
+        return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
 SECStatus SlitheenEnable(sslSocket *ss, PRBool on)
 {
     if (on) {
         ss->clientRandomCallback = SlitheenClientRandomCallback;
+        ss->generateECDHEKeyCallback = SlitheenGenECDHEKeyCallback;
         ss->slitheenState = SSLSlitheenStateNotStarted;
     } else {
         ss->clientRandomCallback = NULL;
+        ss->generateECDHEKeyCallback = NULL;
         ss->slitheenState = SSLSlitheenStateOff;
     }
 
