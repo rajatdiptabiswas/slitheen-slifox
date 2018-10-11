@@ -4735,6 +4735,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
     DHPrivateKey *dhPriv;
 
     /* Elliptic Curve Cryptography */
+    SECItem privbytes = { siBuffer, NULL, 0 };
     SECItem ecEncodedParams; /* DER Encoded parameters */
     ECPrivateKey *ecPriv;
     ECParams *ecParams;
@@ -4796,6 +4797,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
         sftk_FreeObject(privateKey);
         return CKR_HOST_MEMORY;
     }
+    sftk_Attribute2SecItem(NULL, &privbytes, privateKey, CKA_VALUE);
     sftk_DeleteAttributeType(privateKey, CKA_CLASS);
     sftk_DeleteAttributeType(privateKey, CKA_KEY_TYPE);
     sftk_DeleteAttributeType(privateKey, CKA_VALUE);
@@ -5092,8 +5094,9 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             /* extract the necessary parameters and copy them to private keys */
             crv = sftk_Attribute2SSecItem(NULL, &ecEncodedParams, publicKey,
                                           CKA_EC_PARAMS);
-            if (crv != CKR_OK)
+            if (crv != CKR_OK) {
                 break;
+            }
 
             crv = sftk_AddAttributeType(privateKey, CKA_EC_PARAMS,
                                         sftk_item_expand(&ecEncodedParams));
@@ -5109,7 +5112,12 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
                 crv = sftk_MapCryptError(PORT_GetError());
                 break;
             }
-            rv = EC_NewKey(ecParams, &ecPriv);
+            if (privbytes.data) {
+                rv = EC_NewKeyFromSeed(ecParams, &ecPriv,
+                                        privbytes.data, privbytes.len);
+            } else {
+                rv = EC_NewKey(ecParams, &ecPriv);
+            }
             if (rv != SECSuccess) {
                 if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
                     sftk_fatalError = PR_TRUE;
@@ -5155,6 +5163,7 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
         default:
             crv = CKR_MECHANISM_INVALID;
     }
+    SECITEM_FreeItem(&privbytes, PR_FALSE);
 
     if (crv != CKR_OK) {
         sftk_FreeObject(privateKey);
