@@ -188,6 +188,9 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
     unsigned char context[4 + SSL3_RANDOM_LENGTH - PTWIST_TAG_BYTES];
     PRNetAddr peeraddr;
     PRStatus prres;
+    PRUint8 *p;
+
+    p = r;
 
     PORT_Assert(SSL3_RANDOM_LENGTH >= PWTIST_TAG_BYTES);
 
@@ -219,11 +222,11 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
 
     /* Genreate random bytes to put in front of the tag */
     if (offset > 0) {
-        PK11_GenerateRandom(r->rand, offset);
-        PORT_Memcpy(context + 4, r->rand, offset);
+        PK11_GenerateRandom(r, offset);
+        PORT_Memcpy(context + 4, r, offset);
     }
 
-    slitheen_gen_tag(r->rand+offset, sharedkey, context, sizeof(context),
+    slitheen_gen_tag(p+offset, sharedkey, context, sizeof(context),
         randbytes, &skeys);
 
     return SECSuccess;
