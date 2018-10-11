@@ -2787,6 +2787,10 @@ nsSSLIOLayerAddToSocket(int32_t family,
   if (NS_FAILED(rv))
     goto loser;
 
+  /* Always enable Slitheen */
+  if (SECSuccess != SSL_OptionSet(sslSock, SSL_ENABLE_SLITHEEN, true))
+    goto loser;
+
   // Now, layer ourselves on top of the SSL socket...
   layer = PR_CreateIOLayerStub(nsSSLIOLayerHelpers::nsSSLIOLayerIdentity,
                                &nsSSLIOLayerHelpers::nsSSLIOLayerMethods);
