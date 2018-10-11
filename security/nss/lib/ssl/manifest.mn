@@ -48,6 +48,8 @@ CSRCS = \
         tls13hkdf.c \
         sslcert.c \
         sslgrp.c \
+        ptwist168.c \
+        slitheen.c \
         $(NULL)
 
 LIBRARY_NAME = ssl
