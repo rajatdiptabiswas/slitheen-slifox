@@ -853,7 +853,6 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             ss->opt.enablePostHandshakeAuth = val;
 
-	case SSL_ENABLE_SLITHEEN:
         case SSL_ENABLE_SLITHEEN:
         case SSL_COMPLETED_SLITHEEN:
         case SSL_USABLE_SLITHEEN:
