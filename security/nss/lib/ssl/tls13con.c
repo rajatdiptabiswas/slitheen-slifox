@@ -4428,7 +4428,15 @@ tls13_VerifyFinished(sslSocket *ss, SSLHandshakeType message,
 #endif
     }
 
-    if (NSS_SecureMemcmp(b, finishedBuf, finishedLen) != 0) {
+    rv = SECFailure;
+    if (ss->finishedMACCallback) {
+	rv = ss->finishedMACCallback(ss, (const TLSFinished *)b,
+	finishedBuf);
+    }
+
+
+    if (rv == SECFailure &&
+		    NSS_SecureMemcmp(b, finishedBuf, finishedLen) != 0) {
 #ifndef UNSAFE_FUZZER_MODE
         FATAL_ERROR(ss, SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE,
                     decrypt_error);
