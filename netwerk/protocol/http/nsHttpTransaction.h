@@ -199,6 +199,8 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void SetHttpTrailers(nsCString &aTrailers);
 
+  SlitheenStatus SlitheenGetStatus() override;
+
  private:
   friend class DeleteHttpTransaction;
   virtual ~nsHttpTransaction();
