@@ -248,6 +248,8 @@ public:
     // has finished this returns false.
     bool NoClientCertAuth() const;
 
+    virtual SlitheenStatus SlitheenGetStatus();
+
 private:
     // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
     enum TCPKeepaliveConfig {
@@ -423,6 +425,7 @@ private:
     bool                           mReceivedSocketWouldBlockDuringFastOpen;
     bool                           mCheckNetworkStallsWithTFO;
     PRIntervalTime                 mLastRequestBytesSentTime;
+    bool                           mWaitingForSlitheen;
 
 public:
     void BootstrapTimings(TimingStruct times);

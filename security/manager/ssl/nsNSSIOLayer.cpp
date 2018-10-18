@@ -2830,3 +2830,31 @@ nsSSLIOLayerAddToSocket(int32_t family,
   }
   return NS_ERROR_FAILURE;
 }
+
+NS_IMETHODIMP
+nsNSSSocketInfo::SlitheenGetStatus(int16_t *retval)
+{
+    PRBool enabled = false, completed = false, usable = false;
+
+    if (!mFd) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    if (SECSuccess != SSL_OptionGet(mFd, SSL_ENABLE_SLITHEEN, &enabled) ||
+        SECSuccess != SSL_OptionGet(mFd, SSL_COMPLETED_SLITHEEN, &completed) ||
+        SECSuccess != SSL_OptionGet(mFd, SSL_USABLE_SLITHEEN, &usable)) {
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+
+    if (!enabled) {
+        *retval = 0;  // SlitheenStatusNone
+    } else if (!completed) {
+        *retval = 1;  // SlitheenStatusWaiting
+    } else if (!usable) {
+        *retval = 2;  // SlitheenStatusNotSlitheen
+    } else {
+        *retval = 3;  // SlitheenStatusAcknowledged
+    }
+
+    return NS_OK;
+}
