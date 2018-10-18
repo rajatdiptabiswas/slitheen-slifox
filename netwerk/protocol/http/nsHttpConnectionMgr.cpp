@@ -205,6 +205,9 @@ nsHttpConnectionMgr::Init(uint16_t maxUrgentExcessiveConns,
         mThrottleHoldTime = throttleHoldTime;
         mThrottleMaxTime = TimeDuration::FromMilliseconds(throttleMaxTime);
 
+        mSlitheenConnector = new nsHttpSlitheenConnector();
+        mSlitheenConnector->Init(57173);
+
         mIsShuttingDown = false;
     }
 
@@ -236,6 +239,11 @@ nsHttpConnectionMgr::Shutdown()
         // do nothing if already shutdown
         if (!mSocketThreadTarget)
             return NS_OK;
+
+        if (mSlitheenConnector) {
+            mSlitheenConnector->Shutdown();
+            mSlitheenConnector = nullptr;
+        }
 
         nsresult rv = PostEvent(&nsHttpConnectionMgr::OnMsgShutdown,
                                 0, shutdownWrapper);
