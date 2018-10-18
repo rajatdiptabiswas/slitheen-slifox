@@ -93,6 +93,7 @@ UNIFIED_SOURCES += [
     'nsHttpNTLMAuth.cpp',
     'nsHttpRequestHead.cpp',
     'nsHttpResponseHead.cpp',
+    "nsHttpSlitheenConnector.cpp",
     'nsHttpTransaction.cpp',
     'nsServerTiming.cpp',
     'NullHttpChannel.cpp',
