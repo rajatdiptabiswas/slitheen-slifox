@@ -20,6 +20,7 @@
 #include "ARefBase.h"
 #include "nsWeakReference.h"
 #include "TCPFastOpen.h"
+#include "nsHttpSlitheenConnector.h"
 
 #include "nsINamed.h"
 #include "nsIObserver.h"
@@ -801,6 +802,9 @@ class nsHttpConnectionMgr final : public nsIObserver, public AltSvcCache {
   // Then, it notifies selected transactions' connection of the new active tab
   // id.
   void NotifyConnectionOfWindowIdChange(uint64_t previousWindowId);
+
+  // The Slitheen Connector
+  nsAutoPtr<nsHttpSlitheenConnector> mSlitheenConnector;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHttpConnectionMgr::nsHalfOpenSocket,
