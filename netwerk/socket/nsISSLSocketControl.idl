@@ -178,5 +178,11 @@ interface nsISSLSocketControl : nsISupports {
      * True iff the connection was resumed using the resumption token.
      */
     readonly attribute boolean resumed;
+
+    /**
+     * For Slitheen, we need to be able to check if Slitheen is usable
+     * on this connection.
+     */
+     short SlitheenGetStatus();
 };
 
