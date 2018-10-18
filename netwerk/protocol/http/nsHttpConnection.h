@@ -254,6 +254,8 @@ class nsHttpConnection final : public nsAHttpSegmentReader,
 
   void SetTrafficCategory(HttpTrafficCategory aCategory);
 
+  virtual SlitheenStatus SlitheenGetStatus();
+
  private:
   // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
   enum TCPKeepaliveConfig {
@@ -432,6 +434,7 @@ class nsHttpConnection final : public nsAHttpSegmentReader,
   bool mReceivedSocketWouldBlockDuringFastOpen;
   bool mCheckNetworkStallsWithTFO;
   PRIntervalTime mLastRequestBytesSentTime;
+  bool mWaitingForSlitheen;
 
  public:
   void BootstrapTimings(TimingStruct times);

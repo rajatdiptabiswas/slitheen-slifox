@@ -2402,5 +2402,13 @@ void nsHttpTransaction::SetH2WSTransaction(
   mH2WSTransaction = aH2WSTransaction;
 }
 
+SlitheenStatus
+nsHttpTransaction::SlitheenGetStatus()
+{
+  if (!mConnection) return SlitheenStatusNone;
+  return mConnection->SlitheenGetStatus();
+}
+
+
 }  // namespace net
 }  // namespace mozilla

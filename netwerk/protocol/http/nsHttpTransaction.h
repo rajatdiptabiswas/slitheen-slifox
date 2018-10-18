@@ -202,6 +202,8 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   bool IsWebsocketUpgrade();
   void SetH2WSTransaction(SpdyConnectTransaction*);
 
+  SlitheenStatus SlitheenGetStatus() override;
+
  private:
   friend class DeleteHttpTransaction;
   virtual ~nsHttpTransaction();

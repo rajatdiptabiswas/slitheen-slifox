@@ -153,6 +153,12 @@ class nsAHttpConnection : public nsISupports {
   // categories set by nsHttpTransaction to identify how this connection is
   // being used.
   virtual void SetTrafficCategory(HttpTrafficCategory) = 0;
+
+  // Call this function to check if Slitheen is usable for this
+  // connection.  This function is overridden by nsHttpConnection and
+  // ConnectionHandle (the latter is in nsHttpConnectionMgr.cpp)
+  virtual SlitheenStatus SlitheenGetStatus() { return SlitheenStatusNone; }
+
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)
