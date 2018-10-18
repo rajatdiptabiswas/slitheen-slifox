@@ -2457,5 +2457,13 @@ nsHttpTransaction::Finish0RTT(bool aRestart)
     return NS_OK;
 }
 
+SlitheenStatus
+nsHttpTransaction::SlitheenGetStatus()
+{
+    if (!mConnection) return SlitheenStatusNone;
+
+    return mConnection->SlitheenGetStatus();
+}
+
 } // namespace net
 } // namespace mozilla
