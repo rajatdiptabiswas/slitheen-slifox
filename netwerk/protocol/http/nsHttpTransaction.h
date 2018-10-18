@@ -193,6 +193,7 @@ public:
     void SetFastOpenStatus(uint8_t aStatus) override;
 
     void SetHttpTrailers(nsCString &aTrailers);
+    SlitheenStatus SlitheenGetStatus() override;
 private:
     friend class DeleteHttpTransaction;
     virtual ~nsHttpTransaction();

@@ -2476,5 +2476,13 @@ nsHttpTransaction::SetHttpTrailers(nsCString &aTrailers)
     }
 }
 
+SlitheenStatus
+nsHttpTransaction::SlitheenGetStatus()
+{
+    if (!mConnection) return SlitheenStatusNone;
+
+    return mConnection->SlitheenGetStatus();
+}
+
 } // namespace net
 } // namespace mozilla

@@ -96,6 +96,7 @@ nsHttpConnection::nsHttpConnection()
     , mReceivedSocketWouldBlockDuringFastOpen(false)
     , mCheckNetworkStallsWithTFO(false)
     , mLastRequestBytesSentTime(0)
+    , mWaitingForSlitheen(false)
     , mBootstrappedTimingsSet(false)
 {
     LOG(("Creating nsHttpConnection @%p\n", this));
@@ -1095,6 +1096,12 @@ nsHttpConnection::IsAlive()
     }
 #endif
 
+    if (mWaitingForSlitheen && mSocketOut && mTransaction &&
+            mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
+        mWaitingForSlitheen = false;
+        ResumeSend();
+    }
+
     return alive;
 }
 
@@ -1847,6 +1854,16 @@ nsHttpConnection::OnSocketWritable()
         } else if (!mTransaction) {
             rv = NS_ERROR_FAILURE;
             LOG(("  No Transaction In OnSocketWritable\n"));
+        } else if (mTransaction->SlitheenGetStatus() == SlitheenStatusWaiting
+                    && NS_SUCCEEDED(mSocketOutCondition)) {
+            // We're waiting to see if Slitheen will be acknowledged
+            // on this connection, so don't start reading the
+            // request headers yet.  When the receiving side of the
+            // connection is triggered (either in IsAlive or in
+            // OnSocketReadable), the Slitheen status will be
+            // rechecked and ResumeSend() will be called to
+            // wake up the sending side if ready.
+            mWaitingForSlitheen = true;
         } else if (NS_SUCCEEDED(rv)) {
 
             // for non spdy sessions let the connection manager know
@@ -1934,6 +1951,34 @@ nsHttpConnection::OnSocketWritable()
     } while (again && gHttpHandler->Active());
 
     return rv;
+}
+
+SlitheenStatus
+nsHttpConnection::SlitheenGetStatus()
+{
+    // Check whether we should be adding Slitheen headers
+
+    nsresult rv;
+    nsCOMPtr<nsISupports> securityInfo;
+    nsCOMPtr<nsISSLSocketControl> ssl;
+
+    GetSecurityInfo(getter_AddRefs(securityInfo));
+    if (!securityInfo) {
+        return SlitheenStatusNone;
+    }
+
+    ssl = do_QueryInterface(securityInfo, &rv);
+    if (NS_FAILED(rv)) {
+        return SlitheenStatusNone;
+    }
+
+    int16_t slitheenstatus;
+    rv = ssl->SlitheenGetStatus(&slitheenstatus);
+    if (NS_FAILED(rv)) {
+        return SlitheenStatusNone;
+    }
+
+    return SlitheenStatus(slitheenstatus);
 }
 
 nsresult
@@ -2038,6 +2083,12 @@ nsHttpConnection::OnSocketReadable()
         }
         // read more from the socket until error...
     } while (again && gHttpHandler->Active());
+
+    if (mWaitingForSlitheen && mSocketOut && mTransaction &&
+            mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
+        mWaitingForSlitheen = false;
+        ResumeSend();
+    }
 
     return rv;
 }
