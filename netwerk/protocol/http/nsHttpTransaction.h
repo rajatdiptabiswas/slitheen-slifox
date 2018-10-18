@@ -198,6 +198,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void SetFastOpenStatus(uint8_t aStatus) override;
 
   void SetHttpTrailers(nsCString& aTrailers);
+  SlitheenStatus SlitheenGetStatus() override;
 
   bool IsWebsocketUpgrade();
   void SetH2WSTransaction(SpdyConnectTransaction*);

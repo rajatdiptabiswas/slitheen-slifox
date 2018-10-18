@@ -249,6 +249,8 @@ class nsHttpConnection final : public nsAHttpSegmentReader,
   // has finished this returns false.
   bool NoClientCertAuth() const;
 
+  virtual SlitheenStatus SlitheenGetStatus();
+
   // HTTP/2 websocket support
   bool CanAcceptWebsocket();
 
@@ -432,6 +434,7 @@ class nsHttpConnection final : public nsAHttpSegmentReader,
   bool mReceivedSocketWouldBlockDuringFastOpen;
   bool mCheckNetworkStallsWithTFO;
   PRIntervalTime mLastRequestBytesSentTime;
+  bool mWaitingForSlitheen;
 
  public:
   void BootstrapTimings(TimingStruct times);

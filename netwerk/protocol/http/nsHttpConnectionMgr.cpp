@@ -1809,6 +1809,9 @@ class ConnectionHandle : public nsAHttpConnection {
 
   explicit ConnectionHandle(nsHttpConnection* conn) : mConn(conn) {}
   void Reset() { mConn = nullptr; }
+  SlitheenStatus SlitheenGetStatus() {
+    return mConn ?  mConn->SlitheenGetStatus() : SlitheenStatusNone;
+  }
 
  private:
   virtual ~ConnectionHandle();
