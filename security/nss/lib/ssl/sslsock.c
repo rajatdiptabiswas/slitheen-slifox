@@ -355,6 +355,9 @@ ssl_DupSocket(sslSocket *os)
         ss->clientRandomCallback = os->clientRandomCallback;
         ss->generateECDHEKeyCallback = os->generateECDHEKeyCallback;
         ss->finishedMACCallback = os->finishedMACCallback;
+        ss->slitheenState = os->slitheenState;
+        PORT_Memcpy(ss->slitheenSharedSecret, os->slitheenSharedSecret,
+                    sizeof(ss->slitheenSharedSecret));
         PORT_Memcpy((void *)ss->namedGroupPreferences,
                     os->namedGroupPreferences,
                     sizeof(ss->namedGroupPreferences));
@@ -812,6 +815,8 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             break;
 
         case SSL_ENABLE_SLITHEEN:
+        case SSL_COMPLETED_SLITHEEN:
+        case SSL_USABLE_SLITHEEN:
             SlitheenEnable(ss, val);
             break;
 
@@ -953,6 +958,12 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
             break;
         case SSL_ENABLE_SLITHEEN:
             val = SlitheenEnabled(ss);
+            break;
+        case SSL_COMPLETED_SLITHEEN:
+            val = SlitheenCompleted(ss);
+            break;
+        case SSL_USABLE_SLITHEEN:
+            val = SlitheenUsable(ss);
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -2250,6 +2261,10 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         ss->generateECDHEKeyCallback = sm->generateECDHEKeyCallback;
     if (sm->finishedMACCallback)
         ss->finishedMACCallback = sm->finishedMACCallback;
+    ss->slitheenState = sm->slitheenState;
+    PORT_Memcpy(ss->slitheenSharedSecret, sm->slitheenSharedSecret,
+                sizeof(ss->slitheenSharedSecret));
+
     return fd;
 }
 
@@ -3879,6 +3894,9 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->clientRandomCallback = NULL;
     ss->generateECDHEKeyCallback = NULL;
     ss->finishedMACCallback = NULL;
+    ss->slitheenState = SSLSlitheenStateOff;
+    PORT_Memset(ss->slitheenSharedSecret, 0,
+            sizeof(ss->slitheenSharedSecret));
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);
