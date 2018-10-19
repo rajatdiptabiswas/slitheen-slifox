@@ -253,6 +253,16 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 #define SSL_ENABLE_SLITHEEN 200
 
+/* Check if this socket has completed its check for usability of
+ * Slitheen censorship circumvention.
+ */
+#define SSL_COMPLETED_SLITHEEN 201
+
+/* Check if this socket is currently usable for Slitheen censorship
+ * circumvention.
+ */
+#define SSL_USABLE_SLITHEEN 202
+
 /* Enables TLS 1.3 compatibility mode.  In this mode, the client includes a fake
  * session ID in the handshake and sends a ChangeCipherSpec.  A server will
  * always use the setting chosen by the client, so the value of this option has

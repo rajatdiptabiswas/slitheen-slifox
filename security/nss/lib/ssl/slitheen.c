@@ -178,13 +178,12 @@ static void slitheen_gen_tag(byte tag[PTWIST_TAG_BYTES], byte key[16],
     memmove(key, taghashout+16, 16);
 }
 
-static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
+static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random r)
 {
     SlitheenKeys skeys;
     int res;
     size_t offset = SSL3_RANDOM_LENGTH - PTWIST_TAG_BYTES;
     byte randbytes[PTWIST_RANDBYTES];
-    byte sharedkey[16];
     unsigned char context[4 + SSL3_RANDOM_LENGTH - PTWIST_TAG_BYTES];
     PRNetAddr peeraddr;
     PRStatus prres;
@@ -214,6 +213,7 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
 
     res = slitheen_load_current_keys(&skeys);
     if (res < 0) {
+        ss->slitheenState = SSLSlitheenStateOff;
         return SECFailure;
     }
 
@@ -226,8 +226,9 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random *r)
         PORT_Memcpy(context + 4, r, offset);
     }
 
-    slitheen_gen_tag(p+offset, sharedkey, context, sizeof(context),
-        randbytes, &skeys);
+    slitheen_gen_tag(p+offset, ss->slitheenSharedSecret,
+        context, sizeof(context), randbytes, &skeys);
+    ss->slitheenState = SSLSlitheenStateTagged;
 
     return SECSuccess;
 }
@@ -295,8 +296,10 @@ SECStatus SlitheenEnable(sslSocket *ss, PRBool on)
 {
     if (on) {
         ss->clientRandomCallback = SlitheenClientRandomCallback;
+        ss->slitheenState = SSLSlitheenStateNotStarted;
     } else {
         ss->clientRandomCallback = NULL;
+        ss->slitheenState = SSLSlitheenStateOff;
     }
 
     return SECSuccess;
@@ -304,8 +307,17 @@ SECStatus SlitheenEnable(sslSocket *ss, PRBool on)
 
 PRBool SlitheenEnabled(const sslSocket *ss)
 {
-    if (ss->clientRandomCallback == SlitheenClientRandomCallback) {
-        return PR_TRUE;
-    }
-    return PR_FALSE;
+    return (ss->slitheenState != SSLSlitheenStateOff);
+}
+
+
+PRBool SlitheenCompleted(const sslSocket *ss)
+{
+    return (ss->slitheenState == SSLSlitheenStateAcknowledged ||
+        ss->slitheenState == SSLSlitheenStateNack);
+}
+
+PRBool SlitheenUsable(const sslSocket *ss)
+{
+    return (ss->slitheenState == SSLSlitheenStateAcknowledged);
 }
