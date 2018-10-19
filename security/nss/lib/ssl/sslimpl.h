@@ -1010,6 +1010,11 @@ struct sslSocketStr {
     SSLRecordWriteCallback recordWriteCallback;
     void *recordWriteCallbackArg;
 
+    /* Extra callbacks for Slitheen */
+    SSLClientRandomCallback clientRandomCallback;
+    SSLGenerateECDHEKeyCallback generateECDHEKeyCallback;
+    SSLFinishedMACCallback finishedMACCallback;
+
     PRIntervalTime rTimeout; /* timeout for NSPR I/O */
     PRIntervalTime wTimeout; /* timeout for NSPR I/O */
     PRIntervalTime cTimeout; /* timeout for NSPR I/O */
