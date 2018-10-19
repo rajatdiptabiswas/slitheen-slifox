@@ -157,7 +157,7 @@ typedef enum {
 
 typedef SSL3HashesIndividually SSL3Finished;
 
-typedef struct {
+typedef struct TLSFinishedStr {
     PRUint8 verify_data[12];
 } TLSFinished;
 
