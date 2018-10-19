@@ -11436,7 +11436,7 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 
 
         if (rv == SECSuccess) {  /* ssl3_ComputeTLSFinished was successul, update handshake hash */
-            rv = ssl3_UpdateHandshakeHashes(ss, &tlsFinished, ss->ssl3.hs.finishedBytes);
+            rv = ssl3_UpdateHandshakeHashes(ss, (const unsigned char *) &tlsFinished, ss->ssl3.hs.finishedBytes);
         }
 
         if (rv == SECSuccess) {  /* update of TLSFinished hash was successul */
@@ -11793,7 +11793,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
         /* We should wait to include the finished message body. If it was replaced
          * by Slitheen in a session resumption, we need to update with the
          * original Finished hash */
-        if(ss->ssl3.hs.msg_type != finished){
+        if (ss->ssl3.hs.msg_type != finished) {
             /* The message body */
             rv = ssl3_UpdateHandshakeHashes(ss, b, length);
             if (rv != SECSuccess)
