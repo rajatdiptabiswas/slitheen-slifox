@@ -44,6 +44,8 @@
 #include "sslerr.h"
 #include <algorithm>
 
+#include <iostream>
+
 //-----------------------------------------------------------------------------
 
 static NS_DEFINE_CID(kMultiplexInputStream, NS_MULTIPLEXINPUTSTREAM_CID);
@@ -235,6 +237,144 @@ nsHttpTransaction::~nsHttpTransaction()
     ReleaseBlockingTransaction();
 }
 
+// This class is a wrapper to a CStringInputStream, with the twist that
+// the contents of the string are not determined until the input stream
+// is actually read.
+class SlitheenHeaderInputStream final : public nsIInputStream
+{
+public:
+    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_NSIINPUTSTREAM
+
+    SlitheenHeaderInputStream(nsHttpTransaction *trans);
+
+private:
+    ~SlitheenHeaderInputStream();
+
+    nsHttpTransaction *mTrans;
+
+    bool mClosed;
+
+    nsCOMPtr<nsIInputStream> mInputStream;
+
+};
+
+NS_IMPL_ISUPPORTS(SlitheenHeaderInputStream, nsIInputStream)
+
+SlitheenHeaderInputStream::
+SlitheenHeaderInputStream(nsHttpTransaction *trans) :
+    mTrans(trans),
+    mClosed(false),
+    mInputStream(nullptr)
+{
+}
+
+SlitheenHeaderInputStream::
+~SlitheenHeaderInputStream()
+{
+}
+
+NS_IMETHODIMP
+SlitheenHeaderInputStream::
+Close()
+{
+    mClosed = true;
+    mTrans = nullptr;
+    mInputStream = nullptr;
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+SlitheenHeaderInputStream::
+Available(uint64_t* aLength)
+{
+    if (mClosed) {
+        return NS_BASE_STREAM_CLOSED;
+    }
+
+    if (!mInputStream) {
+        *aLength = 0;
+        return NS_OK;
+    }
+
+    return mInputStream->Available(aLength);
+}
+
+NS_IMETHODIMP
+SlitheenHeaderInputStream::
+Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
+{
+    if (mClosed) {
+        return NS_BASE_STREAM_CLOSED;
+    }
+
+    if (!mInputStream) {
+        nsCString slitheenheader;
+        if (mTrans->SlitheenGetStatus() == SlitheenStatusAcknowledged) {
+            nsHttpSlitheenConnector *connector =
+                nsHttpSlitheenConnector::getInstance();
+            if (connector) {
+                connector->getHeader(slitheenheader);
+            }
+            nsAutoCString origin, uri;
+            nsHttpRequestHead *reqhead = mTrans->RequestHead();
+            if (reqhead) {
+                reqhead->Origin(origin);
+                reqhead->RequestURI(uri);
+            }
+            if (slitheenheader.Length() > 0) {
+                std::cerr << "Creating Slitheen header for " << origin.get() << uri.get() << "\n";
+            } else {
+                std::cerr << "Slitheen active, but no header for " << origin.get() << uri.get() << "\n";
+            }
+        }
+        NS_NewCStringInputStream(getter_AddRefs(mInputStream),
+            slitheenheader);
+    }
+
+    return mInputStream->Read(aBuffer, aCount, aReadCount);
+}
+
+NS_IMETHODIMP
+SlitheenHeaderInputStream::
+ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
+                                uint32_t aCount, uint32_t *aResult)
+{
+    if (mClosed || !mInputStream) {
+        return NS_BASE_STREAM_CLOSED;
+    }
+    return mInputStream->ReadSegments(aWriter, aClosure, aCount, aResult);
+}
+
+NS_IMETHODIMP
+SlitheenHeaderInputStream::
+IsNonBlocking(bool* aNonBlocking)
+{
+    *aNonBlocking = true;
+
+    return NS_OK;
+}
+
+// Not part of the class, but a factory to create an instance of the
+// class
+static
+nsresult
+NewSlitheenHeaderInputStream(nsIInputStream** aStreamResult,
+        nsHttpTransaction *trans)
+{
+    NS_PRECONDITION(aStreamResult, "null out ptr");
+
+    RefPtr<SlitheenHeaderInputStream> stream =
+        new SlitheenHeaderInputStream(trans);
+
+    stream.forget(aStreamResult);
+    return NS_OK;
+}
+
+
+///// END OF SlitheenHeaderInputStream /////
+
 nsresult
 nsHttpTransaction::Init(uint32_t caps,
                         nsHttpConnectionInfo *cinfo,
@@ -344,8 +484,10 @@ nsHttpTransaction::Init(uint32_t caps,
 
     // If the request body does not include headers or if there is no request
     // body, then we must add the header/body separator manually.
+    nsCString headerbuf = mReqHeaderBuf;
+
     if (!requestBodyHasHeaders || !requestBody)
-        mReqHeaderBuf.AppendLiteral("\r\n");
+        headerbuf.AppendLiteral("\r\n");
 
     // report the request header
     if (mActivityDistributor) {
@@ -354,7 +496,7 @@ nsHttpTransaction::Init(uint32_t caps,
             NS_HTTP_ACTIVITY_TYPE_HTTP_TRANSACTION,
             NS_HTTP_ACTIVITY_SUBTYPE_REQUEST_HEADER,
             PR_Now(), 0,
-            mReqHeaderBuf);
+            headerbuf);
         if (NS_FAILED(rv)) {
             LOG3(("ObserveActivity failed (%08x)", static_cast<uint32_t>(rv)));
         }
@@ -370,6 +512,36 @@ nsHttpTransaction::Init(uint32_t caps,
     if (NS_FAILED(rv)) return rv;
 
     mHasRequestBody = !!requestBody;
+
+    // We now always create a multiplexed input stream, consisting of:
+    // - the original headers
+    // - a SlitheenHeaderInputStream to create the X-Slitheen header
+    //   dynamically if necessary
+    // - as above, optionally an extra "\r\n"
+    // - the requestBody, if present
+
+    nsCOMPtr<nsIMultiplexInputStream> multi =
+            do_CreateInstance(kMultiplexInputStream, &rv);
+    if (NS_FAILED(rv)) return rv;
+
+    rv = multi->AppendStream(headers);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIInputStream> slitheenheaderstream;
+    NewSlitheenHeaderInputStream(getter_AddRefs(slitheenheaderstream),
+                                 this);
+    rv = multi->AppendStream(slitheenheaderstream);
+    if (NS_FAILED(rv)) return rv;
+
+    if (!requestBodyHasHeaders || !requestBody) {
+        nsCOMPtr<nsIInputStream> separatorstream;
+        rv = NS_NewByteInputStream(getter_AddRefs(separatorstream),
+            "\r\n", 2, NS_ASSIGNMENT_COPY);
+        if (NS_FAILED(rv)) return rv;
+        rv = multi->AppendStream(separatorstream);
+        if (NS_FAILED(rv)) return rv;
+    }
+
     if (mHasRequestBody && !requestContentLength) {
         mHasRequestBody = false;
     }
@@ -377,29 +549,18 @@ nsHttpTransaction::Init(uint32_t caps,
     requestContentLength += mReqHeaderBuf.Length();
 
     if (mHasRequestBody) {
-        // wrap the headers and request body in a multiplexed input stream.
-        nsCOMPtr<nsIMultiplexInputStream> multi =
-            do_CreateInstance(kMultiplexInputStream, &rv);
-        if (NS_FAILED(rv)) return rv;
-
-        rv = multi->AppendStream(headers);
-        if (NS_FAILED(rv)) return rv;
-
         rv = multi->AppendStream(requestBody);
         if (NS_FAILED(rv)) return rv;
-
-        // wrap the multiplexed input stream with a buffered input stream, so
-        // that we write data in the largest chunks possible.  this is actually
-        // necessary to workaround some common server bugs (see bug 137155).
-        nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multi));
-        rv = NS_NewBufferedInputStream(getter_AddRefs(mRequestStream),
-                                       stream.forget(),
-                                       nsIOService::gDefaultSegmentSize);
-        if (NS_FAILED(rv)) return rv;
-    } else {
-        mRequestStream = headers;
     }
 
+    // wrap the multiplexed input stream with a buffered input stream, so
+    // that we write data in the largest chunks possible.  this is actually
+    // necessary to workaround some common server bugs (see bug 137155).
+    nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multi));
+    rv = NS_NewBufferedInputStream(getter_AddRefs(mRequestStream), stream.forget(),
+            nsIOService::gDefaultSegmentSize);
+    if (NS_FAILED(rv)) return rv;
+    
     nsCOMPtr<nsIThrottledInputChannel> throttled = do_QueryInterface(mChannel);
     nsIInputChannelThrottleQueue* queue;
     if (throttled) {
