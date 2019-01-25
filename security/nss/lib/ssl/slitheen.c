@@ -376,7 +376,9 @@ static SECStatus SlitheenGenECDHEKeyCallback(const sslSocket *ss,
     PK11_FreeSymKey(pk11symkey);
     pk11symkey = NULL;
 
-    if (rv != SECSuccess || retlen != privkeylen) {
+    /* We have already checked that privkeylen (which is an int) is at
+     * least 10, so casting it to unsigned int is safe. */
+    if (rv != SECSuccess || retlen != (unsigned int)privkeylen) {
         PORT_ZFree(privkeybytes, privkeylen);
         return SECFailure;
     }
