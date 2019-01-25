@@ -527,3 +527,34 @@ PRBool SlitheenUsable(const sslSocket *ss)
 {
     return (ss->slitheenState == SSLSlitheenStateAcknowledged);
 }
+
+/* Store the SlitheenID for the given SSL socket into PTWIST_TAG_BYTES of
+   slitheenid */
+SECStatus SSL_SlitheenIDGet(PRFileDesc *fd, PRUint8 *slitheenid)
+{
+    return SECFailure;
+}
+
+/* Encrypt some covert data for a Slitheen socket.  Pass in the header
+ * and the body.  *encryptedblockp will be set to a newly allocated
+ * block, which will be owned by the caller and must be freed with
+ * PORT_Free. *enclenp will be set to the length of the encrypted block.
+ */
+SECStatus SSL_SlitheenEncrypt(PRFileDesc *fd,
+    const SSL_SlitheenHeader *header, const PRUint8 *body,
+    PRUint8 **encryptedblockp, PRUint32 *enclenp)
+{
+    return SECFailure;
+}
+
+/* Decrypt some covert data for a Slitheen socket.  Pass in the
+ * encrypted data and its length, as well as a pointer to a
+ * (caller-allocated) SSL_SlitheenHeader struct.  *bodyp will be set to
+ * a newly allocated block, which will be owned by the caller and must
+ * be freed with PORT_Free. */
+SECStatus SSL_SlitheenDecrypt(PRFileDesc *fd,
+    const PRUint8 *encryptedblock, PRUint32 enclen,
+    SSL_SlitheenHeader *header, PRUint8 **bodyp)
+{
+    return SECFailure;
+}
