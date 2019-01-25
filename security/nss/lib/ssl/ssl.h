@@ -279,27 +279,38 @@ typedef struct {
     PRUint16 paddinglen;
 } SSL_SlitheenHeader;
 
-/* Store the SlitheenID for the given SSL socket into PTWIST_TAG_BYTES of
-   slitheenid */
-SSL_IMPORT SECStatus SSL_SlitheenIDGet(PRFileDesc *fd, PRUint8 *slitheenid);
+/* Store the SlitheenID into PTWIST_TAG_BYTES of slitheenid */
+SSL_IMPORT SECStatus SSL_SlitheenIDGet(PRUint8 *slitheenid);
 
-/* Encrypt some covert data for a Slitheen socket.  Pass in the header
- * and the body.  *encryptedblockp will be set to a newly allocated
- * block, which will be owned by the caller and must be freed with
- * PORT_Free. *enclenp will be set to the length of the encrypted block.
+/* Encrypt some covert data.  Pass in the header and the body.
+ * *encryptedblockp will be set to a newly allocated block, which will
+ * be owned by the caller and must be freed with PORT_Free. *enclenp
+ * will be set to the length of the encrypted block. */
+SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const SSL_SlitheenHeader *header,
+    const PRUint8 *body, PRUint8 **encryptedblockp, PRUint32 *enclenp);
+
+/* Decrypt the Slitheen header of some covert data.  Pass in the
+ * encrypted block and its length, as well as a pointer to a
+ * (caller-allocated) SSL_SlitheenHeader struct.  The struct will be
+ * filled in, and *encheaderlenp and *encbodylenp will be filled in with
+ * the lengths of the encrypted header and body respectively.  Pass
+ * (encryptedblock + *encheaderlenp) as encryptedbody to
+ * SSL_SlitheenBodyDecrypt.  If (*encheaderlenp + *encbodylenp) is less
+ * than encblocklen, then there is another header/body pair in this
+ * encrypted block, so call both functions again (using encblocklen -
+ * (*encheaderlenp + *encbodylenp) as the new encblocklen), and so on.
  */
-SSL_IMPORT SECStatus SSL_SlitheenEncrypt(PRFileDesc *fd,
-    const SSL_SlitheenHeader *header, const PRUint8 *body,
-    PRUint8 **encryptedblockp, PRUint32 *enclenp);
+SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
+    PRUint32 encblocklen, SSL_SlitheenHeader *header, PRUint32 *encheaderlenp,
+    PRUint32 *encbodylenp);
 
-/* Decrypt some covert data for a Slitheen socket.  Pass in the
- * encrypted data and its length, as well as a pointer to a
- * (caller-allocated) SSL_SlitheenHeader struct.  *bodyp will be set to
- * a newly allocated block, which will be owned by the caller and must
- * be freed with PORT_Free. */
-SSL_IMPORT SECStatus SSL_SlitheenDecrypt(PRFileDesc *fd,
-    const PRUint8 *encryptedblock, PRUint32 enclen,
-    SSL_SlitheenHeader *header, PRUint8 **bodyp);
+/* Decrypt the Slitheen body of some covert data.  Pass in the
+ * encrypted body and its length, as well as a pointer to a
+ * the SSL_SlitheenHeader struct filled in by SSL_SlitheenHeaderDecrypt.
+ * *bodyp will be set to a newly allocated block, which will be owned by
+ * the caller and must be freed with PORT_Free. */
+SSL_IMPORT SECStatus SSL_SlitheenBodyDecrypt(const PRUint8 *encryptedbody,
+    PRUint32 encbodylen, const SSL_SlitheenHeader *header, PRUint8 **bodyp);
 
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */
