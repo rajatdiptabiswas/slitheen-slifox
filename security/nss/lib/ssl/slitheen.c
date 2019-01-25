@@ -228,6 +228,8 @@ static SECStatus SlitheenClientRandomCallback(sslSocket *ss, SSL3Random r)
 
     slitheen_gen_tag(p+offset, ss->slitheenSharedSecret,
         context, sizeof(context), randbytes, &skeys);
+    memmove(ss->slitheenRouterPubkey, skeys.mainpub,
+        sizeof(ss->slitheenRouterPubkey));
     ss->slitheenState = SSLSlitheenStateTagged;
 
     return SECSuccess;

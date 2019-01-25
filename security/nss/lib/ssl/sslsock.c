@@ -358,6 +358,8 @@ ssl_DupSocket(sslSocket *os)
         ss->slitheenState = os->slitheenState;
         PORT_Memcpy(ss->slitheenSharedSecret, os->slitheenSharedSecret,
                     sizeof(ss->slitheenSharedSecret));
+        PORT_Memcpy(ss->slitheenRouterPubkey, os->slitheenRouterPubkey,
+                    sizeof(ss->slitheenRouterPubkey));
         PORT_Memcpy((void *)ss->namedGroupPreferences,
                     os->namedGroupPreferences,
                     sizeof(ss->namedGroupPreferences));
@@ -2264,6 +2266,8 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     ss->slitheenState = sm->slitheenState;
     PORT_Memcpy(ss->slitheenSharedSecret, sm->slitheenSharedSecret,
                 sizeof(ss->slitheenSharedSecret));
+    PORT_Memcpy(ss->slitheenRouterPubkey, sm->slitheenRouterPubkey,
+                sizeof(ss->slitheenRouterPubkey));
 
     return fd;
 }
@@ -3897,6 +3901,8 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->slitheenState = SSLSlitheenStateOff;
     PORT_Memset(ss->slitheenSharedSecret, 0,
             sizeof(ss->slitheenSharedSecret));
+    PORT_Memset(ss->slitheenRouterPubkey, 0,
+            sizeof(ss->slitheenRouterPubkey));
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);
