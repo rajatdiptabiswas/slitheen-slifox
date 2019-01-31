@@ -1,0 +1,27 @@
+#include "nsISupports.idl"
+
+%{C++
+%}
+
+[builtinclass, uuid(40c2c6f7-2f6b-449e-9c5f-314db5251c8e)]
+interface nsISlitheenSupercryptor : nsISupports {
+    bool SlitheenIDGet(out ACString id);
+
+    bool SlitheenEncrypt(
+      in uint16_t streamid,
+      in ACString data,
+      in uint32_t seq,
+      in uint32_t ack,
+      in uint16_t paddinglen,
+      out ACString encryptedblock);
+
+    bool SlitheenDecrypt(
+      in ACString encryptedblock,
+      in uint32_t offset,
+      out uint16_t streamid,
+      out ACString data,
+      out uint32_t seq,
+      out uint32_t ack,
+      out uint16_t paddinglen,
+      out uint16_t enclen);
+};

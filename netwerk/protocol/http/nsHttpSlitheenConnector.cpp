@@ -219,6 +219,7 @@ SetParentContentListener(
 ///// END OF SlitheenStreamListener /////
 
 nsHttpSlitheenConnector* nsHttpSlitheenConnector::smConnector = nullptr;
+nsISlitheenSupercryptor* nsHttpSlitheenConnector::smSlitheenSupercryptor = nullptr;
 
 nsHttpSlitheenConnector::
 nsHttpSlitheenConnector() :
@@ -494,11 +495,14 @@ mainloop()
 
 nsresult
 nsHttpSlitheenConnector::
-getHeader(nsCString &header)
+getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
 {
     nsresult rv = NS_ERROR_NOT_INITIALIZED;
 
     PR_RWLock_Wlock(mUpstreamLock);
+    if (smSlitheenSupercryptor == nullptr) {
+        smSlitheenSupercryptor = supercryptor;
+    }
     if (mSlitheenID.Length() > 0) {
         header.Assign("X-Slitheen: ");
         header.Append(mSlitheenID);
