@@ -279,7 +279,9 @@ typedef struct {
     PRUint16 paddinglen;
 } SSL_SlitheenHeader;
 
-/* Store the SlitheenID into PTWIST_TAG_BYTES of slitheenid */
+#define SLITHEEN_ID_LEN 28
+
+/* Store the SlitheenID into SLITHEEN_ID_LEN bytes of slitheenid */
 SSL_IMPORT SECStatus SSL_SlitheenIDGet(PRUint8 *slitheenid);
 
 /* Encrypt some covert data.  Pass in the header and the body.

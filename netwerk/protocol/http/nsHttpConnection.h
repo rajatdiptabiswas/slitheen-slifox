@@ -248,6 +248,8 @@ class nsHttpConnection final : public nsAHttpSegmentReader,
 
   virtual SlitheenStatus SlitheenGetStatus();
 
+  virtual nsISlitheenSupercryptor* SlitheenGetSupercryptor();
+
  private:
   // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
   enum TCPKeepaliveConfig {

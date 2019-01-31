@@ -201,6 +201,8 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   SlitheenStatus SlitheenGetStatus() override;
 
+  nsISlitheenSupercryptor* SlitheenGetSupercryptor() override;
+
  private:
   friend class DeleteHttpTransaction;
   virtual ~nsHttpTransaction();

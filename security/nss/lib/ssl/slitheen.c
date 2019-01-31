@@ -530,10 +530,12 @@ PRBool SlitheenUsable(const sslSocket *ss)
     return (ss->slitheenState == SSLSlitheenStateAcknowledged);
 }
 
-/* Store the SlitheenID into PTWIST_TAG_BYTES of slitheenid */
+/* Store the SlitheenID into SLITHEEN_ID_LEN bytes of slitheenid */
 SSL_IMPORT SECStatus SSL_SlitheenIDGet(PRUint8 *slitheenid)
-
 {
+#if SLITHEEN_ID_LEN != PTWIST_TAG_BYTES
+  #error "SLITHEEN_ID_LEN must equal PTWIST_TAG_BYTES"
+#endif
     return SECFailure;
 }
 

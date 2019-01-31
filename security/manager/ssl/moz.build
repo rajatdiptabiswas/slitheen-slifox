@@ -124,6 +124,7 @@ UNIFIED_SOURCES += [
     'nsSecurityHeaderParser.cpp',
     'NSSErrorsService.cpp',
     'nsSiteSecurityService.cpp',
+    'nsSlitheenSupercryptor.cpp',
     'nsSSLSocketProvider.cpp',
     'nsSSLStatus.cpp',
     'nsTLSSocketProvider.cpp',

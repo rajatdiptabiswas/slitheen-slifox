@@ -240,3 +240,12 @@ SSL_GetExperimentalAPI;
 ;+    local:
 ;+*;
 ;+};
+;+NSS_3.33.0.1 { # Additional symbols for Slitheen atop NSS 3.33
+;+    global:
+SSL_SlitheenIDGet;
+SSL_SlitheenEncrypt;
+SSL_SlitheenHeaderDecrypt;
+SSL_SlitheenBodyDecrypt;
+;+    local:
+;+*;
+;+};

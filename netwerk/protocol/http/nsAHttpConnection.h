@@ -154,6 +154,9 @@ class nsAHttpConnection : public nsISupports {
   // connection.  This function is overridden by nsHttpConnection and
   // ConnectionHandle (the latter is in nsHttpConnectionMgr.cpp)
   virtual SlitheenStatus SlitheenGetStatus() { return SlitheenStatusNone; }
+
+  // Call this function to get the SlitheenSupercryptor object
+  virtual nsISlitheenSupercryptor *SlitheenGetSupercryptor() { return nullptr; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpConnection, NS_AHTTPCONNECTION_IID)

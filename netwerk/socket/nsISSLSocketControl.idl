@@ -8,6 +8,7 @@
 
 interface nsIInterfaceRequestor;
 interface nsIX509Cert;
+interface nsISlitheenSupercryptor;
 
 %{C++
 #include "nsStringFwd.h"
@@ -166,6 +167,8 @@ interface nsISSLSocketControl : nsISupports {
      * For Slitheen, we need to be able to check if Slitheen is usable
      * on this connection.
      */
-     short SlitheenGetStatus();
+    short SlitheenGetStatus();
+
+    nsISlitheenSupercryptor SlitheenGetSupercryptor();
 };
 
