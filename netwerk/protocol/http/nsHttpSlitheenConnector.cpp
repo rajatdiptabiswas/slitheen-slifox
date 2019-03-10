@@ -503,7 +503,15 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
     if (smSlitheenSupercryptor == nullptr) {
         smSlitheenSupercryptor = supercryptor;
     }
-    if (mSlitheenID.Length() > 0) {
+
+    nsCString slitheenID;
+    rv = supercryptor->SlitheenIDGet(slitheenID);
+
+    if (rv != NS_OK) {
+        std::cerr << "slitheen ID Get failed\n";
+    }
+
+    if (slitheenID.Length() > 0) {
         header.Assign("X-Slitheen: ");
         header.Append(mSlitheenID);
         while (!mUpstreamQueue.empty()) {

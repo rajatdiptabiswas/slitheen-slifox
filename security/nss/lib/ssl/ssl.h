@@ -281,6 +281,10 @@ typedef struct {
 
 #define SLITHEEN_ID_LEN 28
 
+/* Called once per slitheen client. Generates the SlitheenID and
+ * the supercryption keys */
+SSL_IMPORT SECStatus SSL_SlitheenSuperGen();
+
 /* Store the SlitheenID into SLITHEEN_ID_LEN bytes of slitheenid */
 SSL_IMPORT SECStatus SSL_SlitheenIDGet(PRUint8 *slitheenid);
 

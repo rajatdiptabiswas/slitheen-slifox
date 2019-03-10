@@ -11,6 +11,7 @@
 
 nsSlitheenSupercryptor::nsSlitheenSupercryptor()
 {
+    bool success = SSL_SlitheenSuperGen(); //TODO: do something with return
 }
 
 nsSlitheenSupercryptor::~nsSlitheenSupercryptor()
@@ -21,27 +22,26 @@ NS_IMPL_ISUPPORTS(nsSlitheenSupercryptor,
                   nsISlitheenSupercryptor)
 
 NS_IMETHODIMP
-nsSlitheenSupercryptor::SlitheenIDGet(nsACString & id, bool *_retval)
+nsSlitheenSupercryptor::SlitheenIDGet(nsACString & id)
 {
     unsigned char ids[SLITHEEN_ID_LEN];
-    bool ret = SSL_SlitheenIDGet(ids);
-    if (ret) {
-        id.Assign((const char *)ids, SLITHEEN_ID_LEN);
+    if (SECSuccess != SSL_SlitheenIDGet(ids)) {
+        return NS_ERROR_FAILURE;
     }
-    *_retval = ret;
+
+    id.Assign((const char *)ids, SLITHEEN_ID_LEN);
+
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSlitheenSupercryptor::SlitheenEncrypt(uint16_t streamid, const nsACString & data, uint32_t seq, uint32_t ack, uint16_t paddinglen, nsACString & encryptedblock, bool *_retval)
+nsSlitheenSupercryptor::SlitheenEncrypt(uint16_t streamid, const nsACString & data, uint32_t seq, uint32_t ack, uint16_t paddinglen, nsACString & encryptedblock)
 {
-    *_retval = false;
-    return NS_OK;
+    return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
-nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, uint32_t offset, uint16_t *streamid, nsACString & data, uint32_t *seq, uint32_t *ack, uint16_t *paddinglen, uint16_t *enclen, bool *_retval)
+nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, uint32_t offset, uint16_t *streamid, nsACString & data, uint32_t *seq, uint32_t *ack, uint16_t *paddinglen, uint16_t *enclen)
 {
-    *_retval = false;
-    return NS_OK;
+    return NS_ERROR_FAILURE;
 }

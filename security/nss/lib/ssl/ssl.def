@@ -246,6 +246,7 @@ SSL_SlitheenIDGet;
 SSL_SlitheenEncrypt;
 SSL_SlitheenHeaderDecrypt;
 SSL_SlitheenBodyDecrypt;
+SSL_SlitheenSuperGen;
 ;+    local:
 ;+*;
 ;+};

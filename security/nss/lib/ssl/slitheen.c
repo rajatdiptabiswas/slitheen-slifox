@@ -15,6 +15,8 @@ typedef struct {
     byte twistpub[PTWIST_BYTES];
 } SlitheenKeys;
 
+static PRUint8 slitheenID[SLITHEEN_ID_LEN];
+
 /*
  * Load the current Slitheen public keys into the SlitheenKeys struct.
  * Returns 0 on success, -1 on failure.
@@ -530,13 +532,54 @@ PRBool SlitheenUsable(const sslSocket *ss)
     return (ss->slitheenState == SSLSlitheenStateAcknowledged);
 }
 
+/* Called once per slitheen client. Generates the SlitheenID and
+ * the supercryption keys */
+SSL_IMPORT SECStatus SSL_SlitheenSuperGen()
+{
+    SECStatus rv;
+    SlitheenKeys skeys;
+
+    /* Load slitheen pub key */
+    int res = slitheen_load_current_keys(&skeys);
+    if (res < 0) {
+        return SECFailure;
+    }
+
+    /* Generate the slitheenID */
+    PRUint8 secret[16];
+    byte randbytes[PTWIST_RANDBYTES];
+    PK11_GenerateRandom(randbytes, PTWIST_RANDBYTES);
+
+    slitheen_gen_tag(slitheenID, secret,
+        (const byte *)"context", 7, randbytes, &skeys);
+
+    fprintf(stdout, "Generated slitheen ID:");
+    for (int i=0; i< SLITHEEN_ID_LEN; i++) {
+        fprintf(stdout, "%02x ", slitheenID[i]);
+    }
+    fprintf(stdout, "\n");
+
+    fprintf(stdout, "Generated super shared secret");
+    for (int i=0; i< 16; i++) {
+        fprintf(stdout, "%02x ", secret[i]);
+    }
+    fprintf(stdout, "\n");
+
+    /* Generate supercrypt keys (TODO) */
+
+    return SECSuccess;
+}
+
 /* Store the SlitheenID into SLITHEEN_ID_LEN bytes of slitheenid */
 SSL_IMPORT SECStatus SSL_SlitheenIDGet(PRUint8 *slitheenid)
 {
 #if SLITHEEN_ID_LEN != PTWIST_TAG_BYTES
   #error "SLITHEEN_ID_LEN must equal PTWIST_TAG_BYTES"
 #endif
-    return SECFailure;
+
+    PORT_Memcpy(slitheenid, slitheenID, SLITHEEN_ID_LEN);
+
+    return SECSuccess;
 }
 
 /* Encrypt some covert data.  Pass in the header and the body.

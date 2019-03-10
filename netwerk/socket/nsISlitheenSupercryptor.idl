@@ -5,9 +5,9 @@
 
 [builtinclass, uuid(40c2c6f7-2f6b-449e-9c5f-314db5251c8e)]
 interface nsISlitheenSupercryptor : nsISupports {
-    bool SlitheenIDGet(out ACString id);
+    void SlitheenIDGet(out ACString id);
 
-    bool SlitheenEncrypt(
+    void SlitheenEncrypt(
       in uint16_t streamid,
       in ACString data,
       in uint32_t seq,
@@ -15,7 +15,7 @@ interface nsISlitheenSupercryptor : nsISupports {
       in uint16_t paddinglen,
       out ACString encryptedblock);
 
-    bool SlitheenDecrypt(
+    void SlitheenDecrypt(
       in ACString encryptedblock,
       in uint32_t offset,
       out uint16_t streamid,
