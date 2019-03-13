@@ -15,7 +15,12 @@ typedef struct {
     byte twistpub[PTWIST_BYTES];
 } SlitheenKeys;
 
+#define AES_CBC_KEYLEN 32
+
 static PRUint8 slitheenID[SLITHEEN_ID_LEN];
+static PK11SymKey *super_body_key;
+static PK11SymKey *super_header_key;
+static PK11SymKey *super_mac_key;
 
 /*
  * Load the current Slitheen public keys into the SlitheenKeys struct.
@@ -538,6 +543,9 @@ SSL_IMPORT SECStatus SSL_SlitheenSuperGen()
 {
     SECStatus rv;
     SlitheenKeys skeys;
+    SECItem keysecitem;
+    PK11Context *prf_context = NULL;
+    unsigned int retlen = 0;
 
     /* Load slitheen pub key */
     int res = slitheen_load_current_keys(&skeys);
@@ -546,7 +554,7 @@ SSL_IMPORT SECStatus SSL_SlitheenSuperGen()
     }
 
     /* Generate the slitheenID */
-    PRUint8 secret[16];
+    PRUint8 secret[SLITHEEN_SS_LEN];
     byte randbytes[PTWIST_RANDBYTES];
     PK11_GenerateRandom(randbytes, PTWIST_RANDBYTES);
 
@@ -559,14 +567,120 @@ SSL_IMPORT SECStatus SSL_SlitheenSuperGen()
     }
     fprintf(stdout, "\n");
 
-    fprintf(stdout, "Generated super shared secret");
-    for (int i=0; i< 16; i++) {
+    fprintf(stdout, "Slitheen super shared secret");
+    for (int i=0; i< SLITHEEN_SS_LEN; i++) {
         fprintf(stdout, "%02x ", secret[i]);
     }
     fprintf(stdout, "\n");
 
     /* Generate supercrypt keys (TODO) */
+    PK11SymKey *pk11symkey = NULL;
+    PK11SymKey *body_key = NULL;
+    PK11SymKey *header_key = NULL;
+    PK11SymKey *mac_key = NULL;
+    PK11SlotInfo *slot = PK11_GetInternalSlot();
+    int keyblocklen = AES_CBC_KEYLEN*3; //TODO: keyblock size... ?
+    CK_BYTE *keyblock = NULL;
 
+    if (slot == NULL) {
+        return SECFailure;
+    }
+
+    keyblock = PORT_Alloc(keyblocklen);
+    if (!keyblock) {
+        PK11_FreeSlot(slot);
+        return SECFailure;
+    }
+
+    /* Create a PKCS11 object out of the client-relay shared
+     * secret */
+    SECItem prfparam = { siBuffer, NULL, 0 };
+
+    keysecitem.type = siBuffer;
+    keysecitem.data = (unsigned char *) secret;
+    keysecitem.len = SLITHEEN_SS_LEN;
+
+    pk11symkey = PK11_ImportSymKey(slot, CKM_SHA256_HMAC,
+        PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
+    PK11_FreeSlot(slot);
+    if (!pk11symkey) {
+        PORT_ZFree(keyblock, keyblocklen);
+        return SECFailure;
+    }
+
+    PRINT_KEY(0,(ss, "Slitheen Super Shared Secret:", pk11symkey));
+    /* The super encryption keys will be PRF_pk11symkey("SLITHEEN_SUPER_ENCRYPT") (22) */
+
+    prf_context = PK11_CreateContextBySymKey(
+                    CKM_NSS_TLS_PRF_GENERAL_SHA256, CKA_SIGN,
+                    pk11symkey, &prfparam);
+    if (!prf_context) {
+        PK11_FreeSymKey(pk11symkey);
+        PORT_ZFree(keyblock, keyblocklen);
+        return SECFailure;
+    }
+
+    rv = PK11_DigestBegin(prf_context);
+    rv |= PK11_DigestOp(prf_context,
+                        (const unsigned char *)"SLITHEEN_SUPER_ENCRYPT", 22);
+    rv |= PK11_DigestFinal(prf_context, keyblock, &retlen,
+                            keyblocklen);
+
+    PK11_DestroyContext(prf_context, PR_TRUE);
+    prf_context = NULL;
+    SECITEM_FreeItem(&prfparam, PR_FALSE);
+
+    /* Now divide keyblock for hdr, body, and mac keys */
+    keysecitem.type = siBuffer;
+    keysecitem.data = (unsigned char *) keyblock;
+    keysecitem.len = AES_CBC_KEYLEN;//TODO: keylen size?
+
+    body_key = PK11_ImportSymKey(slot, CKM_AES_CBC,
+        PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
+    PK11_FreeSlot(slot);
+    if (!pk11symkey) {
+        PORT_ZFree(keyblock, keyblocklen);
+        return SECFailure;
+    }
+
+    PRINT_KEY(0,(ss, "Slitheen Super Shared Secret:", body_key));
+
+    keysecitem.type = siBuffer;
+    keysecitem.data = (unsigned char *) keyblock + AES_CBC_KEYLEN;
+    keysecitem.len = AES_CBC_KEYLEN;
+
+    header_key = PK11_ImportSymKey(slot, CKM_AES_CBC,
+        PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
+    PK11_FreeSlot(slot);
+    if (!pk11symkey) {
+        PORT_ZFree(keyblock, keyblocklen);
+        return SECFailure;
+    }
+
+    PRINT_KEY(0,(ss, "Slitheen Super Shared Secret:", header_key));
+
+    keysecitem.type = siBuffer;
+    keysecitem.data = (unsigned char *) keyblock + 2*AES_CBC_KEYLEN;
+    keysecitem.len = AES_CBC_KEYLEN;
+
+    mac_key = PK11_ImportSymKey(slot, CKM_SHA256_HMAC,
+        PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
+    PK11_FreeSlot(slot);
+    if (!pk11symkey) {
+        PORT_ZFree(keyblock, keyblocklen);
+        return SECFailure;
+    }
+
+    PRINT_KEY(0,(ss, "Slitheen Super Shared Secret:", mac_key));
+
+    /* Store keys in global, static variables */
+    super_body_key = body_key;
+    super_header_key = header_key;
+    super_mac_key = mac_key;
+
+    PORT_ZFree(keyblock, keyblocklen);
+    PK11_FreeSymKey(pk11symkey);
+    pk11symkey = NULL;
     return SECSuccess;
 }
 
