@@ -277,16 +277,18 @@ typedef struct {
     PRUint32 seq;
     PRUint32 ack;
     PRUint16 paddinglen;
+    PRUint16 zeros;
 } SSL_SlitheenHeader;
 
 #define SLITHEEN_ID_LEN 28
+#define SLITHEEN_HEADER_LEN 16
 
 /* Called once per slitheen client. Generates the SlitheenID and
  * the supercryption keys */
 SSL_IMPORT SECStatus SSL_SlitheenSuperGen();
 
 /* Store the SlitheenID into SLITHEEN_ID_LEN bytes of slitheenid */
-SSL_IMPORT SECStatus SSL_SlitheenIDGet(PRUint8 *slitheenid);
+SSL_IMPORT SECStatus SSL_SlitheenIDGet(char *slitheenid);
 
 /* Encrypt some covert data.  Pass in the header and the body.
  * *encryptedblockp will be set to a newly allocated block, which will

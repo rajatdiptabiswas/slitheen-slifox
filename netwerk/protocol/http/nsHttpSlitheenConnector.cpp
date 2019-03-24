@@ -13,6 +13,7 @@
 #include "SlitheenConnectorChild.h"
 
 #include <iostream>
+#include <iomanip>
 #define SLITHEEN_CONTENT_TYPE "sli/theen"
 
 namespace mozilla {
@@ -506,6 +507,11 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
 
     nsCString slitheenID;
     rv = supercryptor->SlitheenIDGet(slitheenID);
+    std::cerr << "SlitheenID: ";
+    for (unsigned int i=0; i< slitheenID.Length(); i++){
+        std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (slitheenID.get())[i] << " ";
+    }
+    std::cerr << "\n";
 
     if (rv != NS_OK) {
         std::cerr << "slitheen ID Get failed\n";
@@ -513,7 +519,8 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
 
     if (slitheenID.Length() > 0) {
         header.Assign("X-Slitheen: ");
-        header.Append(mSlitheenID);
+        //TODO: note we may not need mSlitheenID anymore
+        header.Append(slitheenID);
         while (!mUpstreamQueue.empty()) {
             header.Append(" ");
             header.Append(mUpstreamQueue.front());
@@ -530,7 +537,28 @@ nsresult
 nsHttpSlitheenConnector::
 OnSlitheenResource(const nsCString &resource)
 {
-    std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
+
+    nsresult rv = NS_ERROR_NOT_INITIALIZED;
+    std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes):\n";
+    for (unsigned int i=0; i< 16; i++){
+        std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (resource.get())[i] << " ";
+    }
+    std::cerr << "\n";
+
+
+    //Decrypt data
+    if (smSlitheenSupercryptor == NULL ) {
+        return NS_ERROR_FAILURE;
+    }
+
+    nsCString decryptedData;
+    PRUint16 streamID;
+    rv= smSlitheenSupercryptor->SlitheenDecrypt(resource, 0, &streamID, decryptedData, NULL, NULL, NULL, NULL);
+
+    if (rv != NS_OK) {
+        std::cerr << "Slitheen decryption failed\n";
+    }
+
     // For now, just write the data to the socket, and assume the SOCKS
     // proxy is reading fast enough that this won't block (because we're
     // in the socket thread).
