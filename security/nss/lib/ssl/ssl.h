@@ -277,7 +277,6 @@ typedef struct {
     PRUint32 seq;
     PRUint32 ack;
     PRUint16 paddinglen;
-    PRUint16 zeros;
 } SSL_SlitheenHeader;
 
 #define SLITHEEN_ID_LEN 28
@@ -300,17 +299,14 @@ SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const SSL_SlitheenHeader *header,
 /* Decrypt the Slitheen header of some covert data.  Pass in the
  * encrypted block and its length, as well as a pointer to a
  * (caller-allocated) SSL_SlitheenHeader struct.  The struct will be
- * filled in, and *encheaderlenp and *encbodylenp will be filled in with
- * the lengths of the encrypted header and body respectively.  Pass
- * (encryptedblock + *encheaderlenp) as encryptedbody to
- * SSL_SlitheenBodyDecrypt.  If (*encheaderlenp + *encbodylenp) is less
+ * filled in, and *encbodylenp will be filled in with
+ * the length of the encrypted body. If (SLITHEEN_HEADER_LEN + *encbodylenp) is less
  * than encblocklen, then there is another header/body pair in this
  * encrypted block, so call both functions again (using encblocklen -
- * (*encheaderlenp + *encbodylenp) as the new encblocklen), and so on.
+ * (SLITHEEN_HEADER_LEN + *encbodylenp) as the new encblocklen), and so on.
  */
 SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
-    PRUint32 encblocklen, SSL_SlitheenHeader *header, PRUint32 *encheaderlenp,
-    PRUint32 *encbodylenp);
+    PRUint32 encblocklen, SSL_SlitheenHeader *header, PRUint32 *encbodylenp);
 
 /* Decrypt the Slitheen body of some covert data.  Pass in the
  * encrypted body and its length, as well as a pointer to a

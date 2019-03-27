@@ -44,25 +44,60 @@ NS_IMETHODIMP
 nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, uint32_t offset, uint16_t *streamid, nsACString & data, uint32_t *seq, uint32_t *ack, uint16_t *paddinglen, uint16_t *enclen)
 {
     const unsigned char *encryptedData = (const unsigned char *) encryptedblock.BeginReading();
-    PRUint32 encryptedHeaderLen, encryptedBodyLen;
+    PRUint32 encryptedBodyLen;
     unsigned char *decryptedBody;
 
     SSL_SlitheenHeader slitheenHeader;
 
-    /* First decrypt the header so we know how long the encrypted body is */
-    if (SECSuccess != SSL_SlitheenHeaderDecrypt(encryptedData, encryptedblock.Length(),
-                &slitheenHeader, &encryptedHeaderLen, &encryptedBodyLen)) {
-        return NS_ERROR_FAILURE;
+    PRUint32 remainingLength = encryptedblock.Length();
+
+    while (remainingLength > 0) {
+
+        /* First decrypt the header so we know how long the encrypted body is */
+        if (SECSuccess != SSL_SlitheenHeaderDecrypt(encryptedData, remainingLength,
+                    &slitheenHeader, &encryptedBodyLen)) {
+            return NS_ERROR_FAILURE;
+        }
+
+        remainingLength -= SLITHEEN_HEADER_LEN;
+        encryptedData += SLITHEEN_HEADER_LEN;
+
+        /* Now decrypt the body */
+        if (slitheenHeader.datalen != 0 ) {
+
+
+            if (encryptedBodyLen > remainingLength) {
+                fprintf(stderr, "Error decrypting body: %d byte body with %d bytes remaining\n",
+                        encryptedBodyLen, remainingLength);
+                return NS_ERROR_FAILURE;
+            }
+
+            if (SECSuccess != SSL_SlitheenBodyDecrypt(encryptedData + SLITHEEN_HEADER_LEN,
+                        encryptedBodyLen, &slitheenHeader, &decryptedBody)) {
+                return NS_ERROR_FAILURE;
+            }
+
+            remainingLength -= encryptedBodyLen;
+            encryptedData += encryptedBodyLen;
+
+            data.Append((const char *) decryptedBody);
+            PORT_Free(decryptedBody);
+        }
+
+        fprintf(stderr, "Received garbage bytes\n");
+        
+        if (slitheenHeader.paddinglen > remainingLength ) {
+            fprintf(stderr, "Error: %d byte padding with %d bytes remaining\n",
+                    slitheenHeader.paddinglen, remainingLength);
+            return NS_ERROR_FAILURE;
+        }
+
+        remainingLength -= slitheenHeader.paddinglen;
+        encryptedData += slitheenHeader.paddinglen;
+
+        fprintf(stderr, "Remaining encrypted bytes: %d\n", remainingLength);
+
     }
 
-    /* Now decrypt the body */
-    if (SECSuccess != SSL_SlitheenBodyDecrypt(encryptedData + encryptedHeaderLen,
-                encryptedBodyLen, &slitheenHeader, &decryptedBody)) {
-        return NS_ERROR_FAILURE;
-    }
-
-    data.Assign((const char *) decryptedBody);
-    PORT_Free(decryptedBody);
-
-    return NS_ERROR_FAILURE;
+    return NS_OK;
 }
