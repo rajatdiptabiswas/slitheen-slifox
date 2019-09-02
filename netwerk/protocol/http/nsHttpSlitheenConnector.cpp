@@ -387,25 +387,40 @@ PR_Write_Fully(PRFileDesc *fd, const void *vbuf, PRInt32 amount)
     return totwritten;
 }
 
-// Read a 2-byte length then that many bytes of data from a PRFileDesc*
+// Read the socksBlock header of the supplied buffer and return
+// the length of the block
+static
+PRInt16
+chunkLen(char *buf)
+{
+    // Read the length field of the header to determine the amount of data
+    return (PRInt16(buf[3]) << 8) | PRInt16(buf[2]);
+}
+
+// Read the block header and then that many bytes of data from a PRFileDesc*
 // and set the given string to the result.  Returns false if EOF or a
 // read error has occurred, true otherwise.
 static
 bool
-readString(PRFileDesc *fd, nsCString &str)
+readString(PRFileDesc *fd, char *buf)
 {
-    unsigned char chunklenbuf[2];
-    PRInt32 res = PR_Read_Fully(fd, chunklenbuf, 2);
-    if (res < 2) return false;
-    PRInt32 chunklen = (PRInt32(chunklenbuf[0]) << 8) | PRInt32(chunklenbuf[1]);
-    char *buf = new char[chunklen];
+    // We need to read in the 12 byte header first
+    unsigned char headerbuf[12];
+    PRInt32 res = PR_Read_Fully(fd, headerbuf, 12);
+    if (res < 12) return false;
+
+    // Read the length field of the header to determine the amount of data
+    PRInt16 chunklen = chunkLen(headerbuf)
+    buf = new char[chunklen+12];
+
+    // We send the full header to the relay station
+    memcpy(headerbuf, buf, 12);
     if (!buf) return false;
-    res = PR_Read_Fully(fd, buf, chunklen);
+    res = PR_Read_Fully(fd, buf+4, chunklen);
     if (res < chunklen) {
         delete[] buf;
         return false;
     }
-    str.Assign(buf, chunklen);
     delete[] buf;
     return true;
 }
@@ -450,13 +465,6 @@ mainloop()
         mChildSocket = childsocket;
         PR_RWLock_Unlock(mSocketLock);
 
-        // The first string we read is the Slitheen ID
-        PR_RWLock_Rlock(mSocketLock);
-        PR_RWLock_Wlock(mUpstreamLock);
-        bool ok = readString(mChildSocket, mSlitheenID);
-        PR_RWLock_Unlock(mUpstreamLock);
-        PR_RWLock_Unlock(mSocketLock);
-
         if (!ok) {
             PR_RWLock_Wlock(mSocketLock);
             if (mChildSocket) {
@@ -468,11 +476,12 @@ mainloop()
         }
 
         while(1) {
-            nsCString str;
+            nsCstring str;
+            char *buf;
             ok = false;
             PR_RWLock_Rlock(mSocketLock);
             if (mChildSocket) {
-                ok = readString(mChildSocket, str);
+                ok = readString(mChildSocket, buf);
             }
             PR_RWLock_Unlock(mSocketLock);
             if (!ok) {
@@ -487,6 +496,9 @@ mainloop()
                 PR_RWLock_Unlock(mSocketLock);
                 break;
             }
+            //TODO: Encrypt (and b64) received bytes
+            str.Assign(buf, chunkLen(buf))
+
             PR_RWLock_Wlock(mUpstreamLock);
             mUpstreamQueue.push(str);
             PR_RWLock_Unlock(mUpstreamLock);
@@ -519,8 +531,8 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
 
     if (slitheenID.Length() > 0) {
         header.Assign("X-Slitheen: ");
-        //TODO: note we may not need mSlitheenID anymore
         header.Append(slitheenID);
+        //TODO: figure out a way to limit the size of appended chunks
         while (!mUpstreamQueue.empty()) {
             header.Append(" ");
             header.Append(mUpstreamQueue.front());
