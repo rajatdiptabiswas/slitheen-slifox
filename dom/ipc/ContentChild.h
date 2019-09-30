@@ -251,6 +251,10 @@ class ContentChild final : public PContentChild,
 
   bool DeallocPNeckoChild(PNeckoChild*);
 
+  PSlitheenConnectorChild* AllocPSlitheenConnectorChild();
+
+  bool DeallocPSlitheenConnectorChild(PSlitheenConnectorChild*);
+
   PPrintingChild* AllocPPrintingChild();
 
   bool DeallocPPrintingChild(PPrintingChild*);
