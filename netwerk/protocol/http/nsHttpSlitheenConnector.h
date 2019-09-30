@@ -83,6 +83,23 @@ private:
     friend class nsAutoPtr<nsHttpSlitheenConnector>; // needs to call the destructor
 };
 
+// First we define the StreamListener that will receive downstream
+// Slitheen data
+class SlitheenStreamListener final : public nsIStreamListener
+{
+public:
+    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_NSIREQUESTOBSERVER
+    NS_DECL_NSISTREAMLISTENER
+
+    SlitheenStreamListener();
+
+private:
+    virtual ~SlitheenStreamListener();
+
+    nsCString mData;
+};
+
 } // namespace net
 } // namespace mozilla
 
