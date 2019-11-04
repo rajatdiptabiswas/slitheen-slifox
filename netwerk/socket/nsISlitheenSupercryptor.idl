@@ -8,20 +8,12 @@ interface nsISlitheenSupercryptor : nsISupports {
     void SlitheenIDGet(out ACString id);
 
     void SlitheenEncrypt(
-      in uint16_t streamid,
       in ACString data,
-      in uint32_t seq,
-      in uint32_t ack,
-      in uint16_t paddinglen,
+      in uint16_t len,
       out ACString encryptedblock);
 
     void SlitheenDecrypt(
       in ACString encryptedblock,
-      in uint32_t offset,
-      out uint16_t streamid,
       out ACString data,
-      out uint32_t seq,
-      out uint32_t ack,
-      out uint16_t paddinglen,
-      out uint16_t enclen);
+      out uint32_t len);
 };

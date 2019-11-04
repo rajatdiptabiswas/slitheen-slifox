@@ -563,17 +563,17 @@ SSL_IMPORT SECStatus SSL_SlitheenSuperGen()
     slitheen_gen_tag(clientID, secret,
         (const byte *)"context", 7, randbytes, &skeys);
 
-    fprintf(stdout, "Generated slitheen ID:");
+    fprintf(stderr, "Generated slitheen ID:");
     for (int i=0; i< SLITHEEN_ID_LEN; i++) {
-        fprintf(stdout, "%02x ", clientID[i]);
+        fprintf(stderr, "%02x ", clientID[i]);
     }
-    fprintf(stdout, "\n");
+    fprintf(stderr, "\n");
 
-    fprintf(stdout, "Slitheen super shared secret");
+    fprintf(stderr, "Slitheen super shared secret");
     for (int i=0; i< SLITHEEN_SS_LEN; i++) {
-        fprintf(stdout, "%02x ", secret[i]);
+        fprintf(stderr, "%02x ", secret[i]);
     }
-    fprintf(stdout, "\n");
+    fprintf(stderr, "\n");
 
     /* We need to represent the clientID as base64 for upstream encoding */
     slitheenID = BTOA_DataToAscii(clientID, SLITHEEN_ID_LEN); //Should be freed later with PORT_Free
@@ -637,10 +637,16 @@ SSL_IMPORT SECStatus SSL_SlitheenSuperGen()
 
     PRINT_BUF(0,(NULL,"Slitheen Super Key Block:", keyblock, keyblocklen));
 
+    fprintf(stderr, "Slitheen super key block");
+    for (int i=0; i< keyblocklen; i++) {
+        fprintf(stderr, "%02x ", ((unsigned char *) keyblock)[i]);
+    }
+    fprintf(stderr, "\n");
+
     /* Now divide keyblock for hdr, body, and mac keys */
     keysecitem.type = siBuffer;
     keysecitem.data = (unsigned char *) keyblock;
-    keysecitem.len = AES_CBC_KEYLEN;//TODO: keylen size?
+    keysecitem.len = AES_CBC_KEYLEN;
 
     header_key = PK11_ImportSymKey(slot, CKM_AES_CBC,
         PK11_OriginDerive, CKA_SIGN, &keysecitem, NULL);
@@ -707,10 +713,12 @@ SSL_IMPORT SECStatus SSL_SlitheenIDGet(char *slitheenid)
 PK11Context *superCipherInit(PK11SymKey *pk11key, CK_MECHANISM_TYPE type, PRUint8 *iv,
         unsigned int ivlen, CK_ATTRIBUTE_TYPE operation)
 {
-    SECItem secItem = { siBuffer, NULL, 0 };
+    SECItem secItem;
+	secItem.data = iv;
+	secItem.len = ivlen;
     PK11Context *ctx = NULL;
 
-    ctx = PK11_CreateContextBySymKey(CKM_AES_ECB, operation, pk11key, &secItem);
+    ctx = PK11_CreateContextBySymKey(type, operation, pk11key, &secItem);
 
     return ctx;
 }
@@ -730,10 +738,13 @@ SECStatus superCipher(PK11Context *ctx, PRUint8 *out, int *outlen,
  * *encryptedblockp will be set to a newly allocated block, which will
  * be owned by the caller and must be freed with PORT_Free. *enclenp
  * will be set to the length of the encrypted block. */
-SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const SSL_SlitheenHeader *header,
-    const PRUint8 *body, PRUint8 **encryptedblockp, PRUint32 *enclenp)
+SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const PRUint32 len,
+    const PRUint8 *body, char **encodedbody)
 {
-    return SECFailure;
+	//Right now this just b64 encodes the data
+    *encodedbody = BTOA_DataToAscii(body, len); //Should be freed later with PORT_Free
+	
+    return SECSuccess;
 }
 
 /* Decrypt the Slitheen header of some covert data.  Pass in the
@@ -746,7 +757,7 @@ SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const SSL_SlitheenHeader *header,
  * (SLITHEEN_HEADER_LEN + *encbodylenp) as the new encblocklen), and so on.
  */
 SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
-    PRUint32 encblocklen, SSL_SlitheenHeader *header, PRUint32 *encbodylenp)
+    PRUint32 encblocklen, SSL_SlitheenHeader *header, PRUint8 **headerp, PRUint32 *encbodylenp)
 {
 
     if (encblocklen < SLITHEEN_HEADER_LEN ) {
@@ -773,11 +784,20 @@ SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
     }
 
     /* Populate header fields */
-    header->streamID = ntohs((PRUint16) *(decryptedblock+8));
-    header->datalen = ntohs((PRUint16) *(decryptedblock+10));
-    header->seq = ntohl((PRUint32) *(decryptedblock));
-    header->ack = ntohl((PRUint32) *(decryptedblock+4));
+    header->streamID = ntohs((PRUint16) *(decryptedblock));
+	uint16_t *datalen = (uint16_t *) (decryptedblock+2);
+    header->datalen = ntohs(*datalen);
+    header->seq = ntohl((PRUint32) *(decryptedblock+4));
+    header->ack = ntohl((PRUint32) *(decryptedblock+8));
     header->paddinglen = ntohs(*((PRUint16 *) (decryptedblock+12)));
+
+    /* Check to make sure the last 2 bytes are zeros */
+    PRUint8 zeros[] = {0x00, 0x00};
+    if (PORT_Memcmp(decryptedblock+14,  zeros, 2)) {
+        fprintf(stderr, "Header decryption failed (missing zeros)\n");
+        PORT_Free(decryptedblock);
+        return SECFailure;
+    }
 
     fprintf(stderr, "Decrypted slitheen header: \n");
     for (int i = 0; i< SLITHEEN_HEADER_LEN; i++) {
@@ -788,17 +808,10 @@ SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
             header->streamID, header->datalen, header->seq, header->ack,
             header->paddinglen);
 
-    /* Check to make sure the last 2 bytes are zeros */
-    PRUint8 zeros[] = {0x00, 0x00};
-    if (PORT_Memcmp(decryptedblock+14,  zeros, 2)) {
-        fprintf(stderr, "Header decryption failed (missing zeros)\n");
-        PORT_Free(decryptedblock);
-        return SECFailure;
-    }
 
     *encbodylenp = header->datalen;
 
-    PORT_Free(decryptedblock);
+    *headerp = decryptedblock;
     return SECSuccess;
 }
 
@@ -808,11 +821,11 @@ SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
  * *bodyp will be set to a newly allocated block, which will be owned by
  * the caller and must be freed with PORT_Free. */
 SSL_IMPORT SECStatus SSL_SlitheenBodyDecrypt(const PRUint8 *encryptedbody,
-    PRUint32 encbodylen, const SSL_SlitheenHeader *header, PRUint8 **bodyp)
+    PRUint32 encbodylen, const SSL_SlitheenHeader *header, PRUint8 **bodyp, PRUint32 *decbodylenp)
 {
-    PK11Context *ctx = superCipherInit(super_body_key, CKM_AES_CBC, NULL, 0, CKA_DECRYPT);
+    PK11Context *ctx = superCipherInit(super_body_key, CKM_AES_CBC, encryptedbody, 16, CKA_DECRYPT);
     if (ctx == NULL) {
-        fprintf(stderr, "Failed to initialize ecb context\n");
+        fprintf(stderr, "Failed to initialize cbc context\n");
         return SECFailure;
     }
 
@@ -821,15 +834,20 @@ SSL_IMPORT SECStatus SSL_SlitheenBodyDecrypt(const PRUint8 *encryptedbody,
         len += 16 - len%16;
     }
 
-    PRInt32 dec_len;
+    fprintf(stderr, "Encrypted slitheen body (%d bytes):", encbodylen);
+    for (int i=0; i< encbodylen; i++){
+        fprintf(stderr, "%02x ", encryptedbody[i]);
+    }
+    fprintf(stderr, "\n");
+
     unsigned char *decryptedbody = PORT_Alloc(len);
-    if (SECSuccess != superCipher(ctx, decryptedbody, &dec_len, len, encryptedbody, len)) {
+    if (SECSuccess != superCipher(ctx, decryptedbody, decbodylenp, len, encryptedbody+16, len)) {
         PORT_Free(decryptedbody);
         return SECFailure; //TODO: return what previous function returned
     }
 
-    fprintf(stderr, "Decrypted slitheen body (%d bytes):", dec_len);
-    for (int i=0; i< dec_len; i++){
+    fprintf(stderr, "Decrypted slitheen body (%d bytes):", *decbodylenp);
+    for (int i=0; i< *decbodylenp; i++){
         fprintf(stderr, "%02x ", decryptedbody[i]);
     }
     fprintf(stderr, "\n");

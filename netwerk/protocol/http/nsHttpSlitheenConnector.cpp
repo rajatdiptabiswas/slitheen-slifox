@@ -74,7 +74,6 @@ SlitheenStreamListener::
 OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
     nsresult aStatusCode)
 {
-    // std::cerr << "OnStopRequest called\n";
 
     //If it's a child, send to parent
     if (XRE_IsContentProcess()) {
@@ -113,118 +112,11 @@ OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
 
 ///// END OF SlitheenStreamListener /////
 
-// Next we define the Slitheen Content Listener
-class SlitheenContentListener final : public nsIURIContentListener
-                                    , public nsSupportsWeakReference
-{
-public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSIURICONTENTLISTENER
-
-    SlitheenContentListener();
-
-private:
-    ~SlitheenContentListener();
-
-    nsCOMPtr<nsIStreamListener> mListener;
-};
-
-NS_IMPL_ISUPPORTS(SlitheenContentListener,
-                  nsIURIContentListener,
-                  nsISupportsWeakReference)
-
-SlitheenContentListener::
-SlitheenContentListener()
-{
-}
-
-SlitheenContentListener::
-~SlitheenContentListener()
-{
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-OnStartURIOpen(nsIURI *aURI, bool *aAbortOpen)
-{
-    *aAbortOpen = false;  // Do not block the loading of this content
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-DoContent(const nsACString &aContentType,
-    bool aIsContentPreferred, nsIRequest *aRequest,
-    nsIStreamListener **aContentHandler, bool *_retval)
-{
-
-    mListener = new SlitheenStreamListener();
-    NS_IF_ADDREF(*aContentHandler = mListener);
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-IsPreferred(const char *aContentType,
-    char **aDesiredContentType, bool *aPreferred)
-{
-    if (!strcmp(aContentType, SLITHEEN_CONTENT_TYPE)) {
-        *aPreferred = true;
-        *aDesiredContentType = nullptr;
-    } else {
-        *aPreferred = false;
-    }
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-CanHandleContent(const char *aContentType,
-    bool aIsContentPreferred, char **aDesiredContentType, bool *aCanHandle)
-{
-    return IsPreferred(aContentType, aDesiredContentType, aCanHandle);
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-GetLoadCookie(nsISupports **aLoadCookie)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-SetLoadCookie(nsISupports *aLoadCookie)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-GetParentContentListener(
-    nsIURIContentListener **aParentContentListener)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-SlitheenContentListener::
-SetParentContentListener(
-    nsIURIContentListener *aParentContentListener)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-///// END OF SlitheenStreamListener /////
-
 nsHttpSlitheenConnector* nsHttpSlitheenConnector::smConnector = nullptr;
 nsISlitheenSupercryptor* nsHttpSlitheenConnector::smSlitheenSupercryptor = nullptr;
 
 nsHttpSlitheenConnector::
 nsHttpSlitheenConnector() :
-    mContentListener(nullptr),
     mThread(nullptr),
     mSocketLock(nullptr),
     mSocket(nullptr),
@@ -261,17 +153,6 @@ nsHttpSlitheenConnector::
 Init(unsigned short port)
 {
     PRStatus rv;
-    nsresult nsrv;
-
-    // Register the SlitheenContentListener as a handler for the
-    // downstream slitheen data type
-    nsCOMPtr<nsIURILoader>
-        uriLoader(do_GetService(NS_URI_LOADER_CONTRACTID, &nsrv));
-    if (NS_FAILED(nsrv)) {
-        return false;
-    }
-    mContentListener = new SlitheenContentListener();
-    nsrv = uriLoader->RegisterContentListener(mContentListener);
 
     // Create the socket
     PRFileDesc *socket = PR_OpenTCPSocket(AF_INET);
@@ -327,16 +208,6 @@ Shutdown()
     // join with thread
     PR_JoinThread(mThread);
     mThread = nullptr;
-
-    // Deegister the SlitheenContentListener as a handler for the
-    // downstream slitheen data type
-    nsresult nsrv;
-    nsCOMPtr<nsIURILoader>
-        uriLoader(do_GetService(NS_URI_LOADER_CONTRACTID, &nsrv));
-    if (NS_SUCCEEDED(nsrv)) {
-        uriLoader->UnRegisterContentListener(mContentListener);
-    }
-    mContentListener = nullptr;
 }
 
 // Read the full given amount of data from the PRFileDesc*, even if it
@@ -402,26 +273,38 @@ chunkLen(char *buf)
 // read error has occurred, true otherwise.
 static
 bool
-readString(PRFileDesc *fd, char *buf)
+readString(PRFileDesc *fd, nsACString &str)
 {
     // We need to read in the 12 byte header first
-    unsigned char headerbuf[12];
+    char headerbuf[12];
     PRInt32 res = PR_Read_Fully(fd, headerbuf, 12);
     if (res < 12) return false;
 
     // Read the length field of the header to determine the amount of data
-    PRInt16 chunklen = chunkLen(headerbuf)
-    buf = new char[chunklen+12];
+    PRInt16 chunklen = chunkLen(headerbuf);
+    char *buf = new char[chunklen+12];
+
+    std::cerr << "Read in header ";
+    for (int i=0; i< 12; i++)
+	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (headerbuf)[i] << " ";
+	std::cerr << "\n";
 
     // We send the full header to the relay station
-    memcpy(headerbuf, buf, 12);
+    memcpy(buf, headerbuf, 12);
     if (!buf) return false;
     res = PR_Read_Fully(fd, buf+4, chunklen);
+
+    std::cerr << "Read in data ";
+    for (int i=12; i< chunklen; i++)
+	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (buf)[i] << " ";
+	std::cerr << "\n";
+
     if (res < chunklen) {
         delete[] buf;
         return false;
     }
-    delete[] buf;
+	str.Append(buf, chunklen+4);
+	delete[] buf;
     return true;
 }
 
@@ -431,16 +314,8 @@ static
 bool
 writeString(PRFileDesc *fd, const nsCString &str)
 {
-    unsigned char chunklenbuf[4];
-    PRInt32 chunklen = str.Length();
-    chunklenbuf[0] = (chunklen & 0xff);
-    chunklenbuf[1] = ((chunklen >> 8) & 0xff);
-    chunklenbuf[2] = ((chunklen >> 16) & 0xff);
-    chunklenbuf[3] = ((chunklen >> 24) & 0xff);
-    PRInt32 res = PR_Write_Fully(fd, chunklenbuf, 4);
-    if (res < 4) return false;
-    res = PR_Write_Fully(fd, str.get(), chunklen);
-    if (res < chunklen) {
+    PRInt32 res = PR_Write_Fully(fd, str.get(), str.Length());
+    if (res < str.Length()) {
         return false;
     }
     return true;
@@ -450,6 +325,7 @@ void
 nsHttpSlitheenConnector::
 mainloop()
 {
+    nsresult rv = NS_ERROR_NOT_INITIALIZED;
     while(mSocket != nullptr) {
         PRFileDesc *childsocket = PR_Accept(mSocket, nullptr,
                                             PR_INTERVAL_NO_TIMEOUT);
@@ -465,42 +341,49 @@ mainloop()
         mChildSocket = childsocket;
         PR_RWLock_Unlock(mSocketLock);
 
-        if (!ok) {
-            PR_RWLock_Wlock(mSocketLock);
-            if (mChildSocket) {
-                PR_Close(mChildSocket);
-                mChildSocket = nullptr;
-            }
-            PR_RWLock_Unlock(mSocketLock);
-            continue;
-        }
-
         while(1) {
-            nsCstring str;
-            char *buf;
-            ok = false;
+            nsCString str;
+            bool ok = false;
             PR_RWLock_Rlock(mSocketLock);
             if (mChildSocket) {
-                ok = readString(mChildSocket, buf);
+                ok = readString(mChildSocket, str);
             }
             PR_RWLock_Unlock(mSocketLock);
             if (!ok) {
+				std::cerr << "Error reading from socket. Closing.";
                 PR_RWLock_Wlock(mSocketLock);
                 if (mChildSocket) {
                     PR_Close(mChildSocket);
                     mChildSocket = nullptr;
-                    PR_RWLock_Wlock(mUpstreamLock);
-                    mSlitheenID.Assign("");
-                    PR_RWLock_Unlock(mUpstreamLock);
                 }
                 PR_RWLock_Unlock(mSocketLock);
                 break;
             }
             //TODO: Encrypt (and b64) received bytes
-            str.Assign(buf, chunkLen(buf))
+			if (smSlitheenSupercryptor == NULL ) {
+				std::cerr << "Error: no supercryptor yet\n";
+				break;
+			}
+
+			nsCString encodedBytes;
+			std::cerr << "Encrypting " << str.Length() << "bytes:\n";
+			for (int i=0; i< str.Length(); i++)
+			std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (str.get())[i] << " ";
+			std::cerr << "\n";
+
+			rv = smSlitheenSupercryptor->SlitheenEncrypt(str, str.Length(), encodedBytes);
+
+			if (rv != NS_OK) {
+				std::cerr << "Error encoding upstream bytes\n";
+				continue;
+			}
+
+			std::cerr << "Sending upstream:\n";
+			std::cerr << encodedBytes.get();
+			std::cerr << "\n";
 
             PR_RWLock_Wlock(mUpstreamLock);
-            mUpstreamQueue.push(str);
+            mUpstreamQueue.push(encodedBytes);
             PR_RWLock_Unlock(mUpstreamLock);
         }
     }
@@ -519,11 +402,6 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
 
     nsCString slitheenID;
     rv = supercryptor->SlitheenIDGet(slitheenID);
-    std::cerr << "SlitheenID: ";
-    for (unsigned int i=0; i< slitheenID.Length(); i++){
-        std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (slitheenID.get())[i] << " ";
-    }
-    std::cerr << "\n";
 
     if (rv != NS_OK) {
         std::cerr << "slitheen ID Get failed\n";
@@ -551,12 +429,7 @@ OnSlitheenResource(const nsCString &resource)
 {
 
     nsresult rv = NS_ERROR_NOT_INITIALIZED;
-    std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes):\n";
-    for (unsigned int i=0; i< 16; i++){
-        std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (resource.get())[i] << " ";
-    }
-    std::cerr << "\n";
-
+    std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
 
     //Decrypt data
     if (smSlitheenSupercryptor == NULL ) {
@@ -564,12 +437,22 @@ OnSlitheenResource(const nsCString &resource)
     }
 
     nsCString decryptedData;
-    PRUint16 streamID;
-    rv= smSlitheenSupercryptor->SlitheenDecrypt(resource, 0, &streamID, decryptedData, NULL, NULL, NULL, NULL);
+    PRUint32 datalen = 0;
+    rv= smSlitheenSupercryptor->SlitheenDecrypt(resource, decryptedData, &datalen);
 
     if (rv != NS_OK) {
         std::cerr << "Slitheen decryption failed\n";
     }
+
+	if (datalen == 0 ) {
+        std::cerr << "No decrypted slitheen data available\n";
+		return NS_OK;
+	}
+
+    std::cerr << "Got decrypted bytes";
+    for (int i=0; i< datalen; i++)
+	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (decryptedData.get())[i] << " ";
+	std::cerr << "\n";
 
     // For now, just write the data to the socket, and assume the SOCKS
     // proxy is reading fast enough that this won't block (because we're
@@ -579,7 +462,8 @@ OnSlitheenResource(const nsCString &resource)
         PR_RWLock_Rlock(mSocketLock);
         // mChildSocket may have changed by the time we get the lock
         if (mChildSocket) {
-            ok = writeString(mChildSocket, resource);
+			std::cerr << "Writing " << datalen << " bytes to socks\n";
+            ok = writeString(mChildSocket, decryptedData);
         }
         PR_RWLock_Unlock(mSocketLock);
     }

@@ -1,7 +1,6 @@
 #ifndef nsHttpSlitheenConnector_h__
 #define nsHttpSlitheenConnector_h__
 
-#include "nsIURIContentListener.h"
 #include "SlitheenConnectorChild.h"
 #include "nsISlitheenSupercryptor.h"
 
@@ -66,11 +65,6 @@ private:
     // order, and release them in the opposite order:
     // 1. mSocketLock
     // 2. mUpstreamLock
-
-    nsCOMPtr<nsIURIContentListener> mContentListener;
-                               // A wrapper pointer to the
-                               // ContentListener object for handling
-                               // downstream slitheen data
 
     PRThread *mThread;         // the Slitheen thread
 

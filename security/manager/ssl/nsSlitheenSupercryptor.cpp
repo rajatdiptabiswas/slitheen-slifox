@@ -6,8 +6,11 @@
 
 #include "nsSlitheenSupercryptor.h"
 
+#include "mozilla/Base64.h"
 #include "nsString.h"
 #include "ssl.h"
+
+#include <iostream>
 
 nsSlitheenSupercryptor::nsSlitheenSupercryptor()
 {
@@ -35,17 +38,19 @@ nsSlitheenSupercryptor::SlitheenIDGet(nsACString & id)
 }
 
 NS_IMETHODIMP
-nsSlitheenSupercryptor::SlitheenEncrypt(uint16_t streamid, const nsACString & data, uint32_t seq, uint32_t ack, uint16_t paddinglen, nsACString & encryptedblock)
+nsSlitheenSupercryptor::SlitheenEncrypt(const nsACString & data, uint16_t len, nsACString & encryptedblock)
 {
-    return NS_ERROR_FAILURE;
+	return mozilla::Base64Encode(data, encryptedblock);
 }
 
 NS_IMETHODIMP
-nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, uint32_t offset, uint16_t *streamid, nsACString & data, uint32_t *seq, uint32_t *ack, uint16_t *paddinglen, uint16_t *enclen)
+nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, nsACString & data, uint32_t *len)
 {
     const unsigned char *encryptedData = (const unsigned char *) encryptedblock.BeginReading();
     PRUint32 encryptedBodyLen;
+    PRUint32 decryptedBodyLen;
     unsigned char *decryptedBody;
+    unsigned char *decryptedHeader;
 
     SSL_SlitheenHeader slitheenHeader;
 
@@ -55,12 +60,19 @@ nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, uint3
 
         /* First decrypt the header so we know how long the encrypted body is */
         if (SECSuccess != SSL_SlitheenHeaderDecrypt(encryptedData, remainingLength,
-                    &slitheenHeader, &encryptedBodyLen)) {
+                    &slitheenHeader, &decryptedHeader, &encryptedBodyLen)) {
             return NS_ERROR_FAILURE;
         }
 
         remainingLength -= SLITHEEN_HEADER_LEN;
         encryptedData += SLITHEEN_HEADER_LEN;
+
+
+        if (slitheenHeader.datalen != 0 ) {
+			data.Append((const char *) decryptedHeader, SLITHEEN_HEADER_LEN - 4);
+			*len += SLITHEEN_HEADER_LEN - 4;
+		}
+		PORT_Free(decryptedHeader);
 
         /* Now decrypt the body */
         if (slitheenHeader.datalen != 0 ) {
@@ -72,20 +84,19 @@ nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, uint3
                 return NS_ERROR_FAILURE;
             }
 
-            if (SECSuccess != SSL_SlitheenBodyDecrypt(encryptedData + SLITHEEN_HEADER_LEN,
-                        encryptedBodyLen, &slitheenHeader, &decryptedBody)) {
+            if (SECSuccess != SSL_SlitheenBodyDecrypt(encryptedData,
+                        encryptedBodyLen, &slitheenHeader, &decryptedBody, &decryptedBodyLen)) {
                 return NS_ERROR_FAILURE;
             }
 
-            remainingLength -= encryptedBodyLen;
-            encryptedData += encryptedBodyLen;
+            remainingLength -= decryptedBodyLen + 32;
+            encryptedData += decryptedBodyLen + 32;
 
-            data.Append((const char *) decryptedBody);
+            data.Append((const char *) decryptedBody, (PRUint32) slitheenHeader.datalen);
+			*len += slitheenHeader.datalen;
             PORT_Free(decryptedBody);
         }
 
-        fprintf(stderr, "Received garbage bytes\n");
-        
         if (slitheenHeader.paddinglen > remainingLength ) {
             fprintf(stderr, "Error: %d byte padding with %d bytes remaining\n",
                     slitheenHeader.paddinglen, remainingLength);

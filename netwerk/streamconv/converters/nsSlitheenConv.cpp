@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "nsSlitheenConv.h"
 #include "nsCOMPtr.h"
 #include "nsError.h"
@@ -25,12 +23,10 @@ NS_IMPL_ISUPPORTS(nsSlitheenConv,
 
 nsSlitheenConv::nsSlitheenConv()
 {
-    std::cerr << "nsSlitheenConv ctor\n";
 }
 
 nsSlitheenConv::~nsSlitheenConv()
 {
-    std::cerr << "nsSlitheenConv dtor\n";
 }
 
 nsresult
@@ -72,7 +68,6 @@ NS_IMETHODIMP
 nsSlitheenConv::OnStartRequest(nsIRequest* request, nsISupports *aContext)
 {
 
-    std::cerr << "nsSlitheenConv::OnStartRequest\n";
 
     nsresult rv = mSlitheenListener->OnStartRequest(request, aContext);
     if(NS_FAILED(rv)) {
@@ -87,7 +82,6 @@ NS_IMETHODIMP
 nsSlitheenConv::OnStopRequest(nsIRequest* request, nsISupports *aContext,
                                   nsresult aStatus)
 {
-    std::cerr << "nsSlitheenConv::OnStopRequest\n";
 
     //replace data with 1x1 green pixel
     nsCOMPtr<nsIInputStream> replacementData;
@@ -128,7 +122,6 @@ nsSlitheenConv::OnDataAvailable(nsIRequest* request,
         return rv;
     }
 
-    std::cerr << "nsSlitheenConv::OnDataAvailable\n";
     return NS_OK;
 }
 
