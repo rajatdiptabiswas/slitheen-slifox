@@ -1,4 +1,5 @@
 #include <iostream>
+#include <ctime>
 
 #include "nsStreamUtils.h"
 #include "prio.h"
@@ -30,6 +31,8 @@ namespace mozilla {
 SlitheenConverter::SlitheenConverter()
 {
     InitializeThread();
+	dataCount = 0;
+	sliDataCount = 0;
 }
 
 SlitheenConverter::~SlitheenConverter()
@@ -104,6 +107,28 @@ SlitheenConverter::Send()
         net::nsHttpSlitheenConnector::ReceiveResource(mData);
     }
     mData.Assign("");
+	this->Log();
+}
+
+void
+SlitheenConverter::Tally(size_t count, bool sli)
+{
+	//Aggregate 
+	dataCount += count;
+	if (sli)
+		sliDataCount += count;
+
+}
+
+void
+SlitheenConverter::Log()
+{
+	//Aggregate
+	std::time_t t = std::time(0);
+	fprintf(stdout, "%d,%ld,%ld\n", t, dataCount, sliDataCount);
+	dataCount = 0;
+	sliDataCount = 0;
+	//std::cerr << "dataCount: " << dataCount << ", sliDataCount: " << sliDataCount << "\n";
 }
 
 } //mozilla

@@ -683,12 +683,17 @@ WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
 
 		if (isSlitheen || mSlitheenResource) {
       int codec = (aType == TrackInfo::kVideoTrack) ? mVideoCodec : mAudioCodec;
+      slitheenConverter->Tally(length, true);
       slitheenConverter->Append((char **)&data, &length,
           codec, aType, isSlitheen);
 
       packetEncryption = NESTEGG_PACKET_HAS_SIGNAL_BYTE_FALSE;
       mSlitheenResource = 1;
 
+    }
+
+    if (nestegg_packet_type(holder->Packet()) == 0xa3) {
+      slitheenConverter->Tally(length, false);
     }
 
     bool isKeyframe = false;
