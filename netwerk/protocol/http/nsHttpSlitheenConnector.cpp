@@ -13,6 +13,7 @@
 #include "SlitheenConnectorChild.h"
 
 #include <iostream>
+#include <iomanip>
 #define SLITHEEN_CONTENT_TYPE "sli/theen"
 
 namespace mozilla {
@@ -260,26 +261,53 @@ PR_Write_Fully(PRFileDesc *fd, const void *vbuf, PRInt32 amount)
     return totwritten;
 }
 
-// Read a 2-byte length then that many bytes of data from a PRFileDesc*
+// Read the socksBlock header of the supplied buffer and return
+// the length of the block
+static
+PRInt16
+chunkLen(char *buf)
+{
+    // Read the length field of the header to determine the amount of data
+    return (PRInt16(buf[3]) << 8) | PRInt16(buf[2]);
+}
+
+// Read the block header and then that many bytes of data from a PRFileDesc*
 // and set the given string to the result.  Returns false if EOF or a
 // read error has occurred, true otherwise.
 static
 bool
-readString(PRFileDesc *fd, nsCString &str)
+readString(PRFileDesc *fd, nsACString &str)
 {
-    unsigned char chunklenbuf[2];
-    PRInt32 res = PR_Read_Fully(fd, chunklenbuf, 2);
-    if (res < 2) return false;
-    PRInt32 chunklen = (PRInt32(chunklenbuf[0]) << 8) | PRInt32(chunklenbuf[1]);
-    char *buf = new char[chunklen];
+    // We need to read in the 12 byte header first
+    char headerbuf[12];
+    PRInt32 res = PR_Read_Fully(fd, headerbuf, 12);
+    if (res < 12) return false;
+
+    // Read the length field of the header to determine the amount of data
+    PRInt16 chunklen = chunkLen(headerbuf);
+    char *buf = new char[chunklen+12];
+
+    std::cerr << "Read in header ";
+    for (int i=0; i< 12; i++)
+	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (headerbuf)[i] << " ";
+	std::cerr << "\n";
+
+    // We send the full header to the relay station
+    memcpy(buf, headerbuf, 12);
     if (!buf) return false;
-    res = PR_Read_Fully(fd, buf, chunklen);
+    res = PR_Read_Fully(fd, buf+4, chunklen);
+
+    std::cerr << "Read in data ";
+    for (int i=12; i< chunklen; i++)
+	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (buf)[i] << " ";
+	std::cerr << "\n";
+
     if (res < chunklen) {
         delete[] buf;
         return false;
     }
-    str.Assign(buf, chunklen);
-    delete[] buf;
+	str.Append(buf, chunklen+4);
+	delete[] buf;
     return true;
 }
 
@@ -289,16 +317,8 @@ static
 bool
 writeString(PRFileDesc *fd, const nsCString &str)
 {
-    unsigned char chunklenbuf[4];
-    PRInt32 chunklen = str.Length();
-    chunklenbuf[0] = (chunklen & 0xff);
-    chunklenbuf[1] = ((chunklen >> 8) & 0xff);
-    chunklenbuf[2] = ((chunklen >> 16) & 0xff);
-    chunklenbuf[3] = ((chunklen >> 24) & 0xff);
-    PRInt32 res = PR_Write_Fully(fd, chunklenbuf, 4);
-    if (res < 4) return false;
-    res = PR_Write_Fully(fd, str.get(), chunklen);
-    if (res < chunklen) {
+    PRInt32 res = PR_Write_Fully(fd, str.get(), str.Length());
+    if ((res < 0) || ((PRUint32) res < str.Length())) {
         return false;
     }
     return true;
@@ -308,6 +328,7 @@ void
 nsHttpSlitheenConnector::
 mainloop()
 {
+    nsresult rv = NS_ERROR_NOT_INITIALIZED;
     while(mSocket != nullptr) {
         PRFileDesc *childsocket = PR_Accept(mSocket, nullptr,
                                             PR_INTERVAL_NO_TIMEOUT);
@@ -323,45 +344,49 @@ mainloop()
         mChildSocket = childsocket;
         PR_RWLock_Unlock(mSocketLock);
 
-        // The first string we read is the Slitheen ID
-        PR_RWLock_Rlock(mSocketLock);
-        PR_RWLock_Wlock(mUpstreamLock);
-        bool ok = readString(mChildSocket, mSlitheenID);
-        PR_RWLock_Unlock(mUpstreamLock);
-        PR_RWLock_Unlock(mSocketLock);
-
-        if (!ok) {
-            PR_RWLock_Wlock(mSocketLock);
-            if (mChildSocket) {
-                PR_Close(mChildSocket);
-                mChildSocket = nullptr;
-            }
-            PR_RWLock_Unlock(mSocketLock);
-            continue;
-        }
-
         while(1) {
             nsCString str;
-            ok = false;
+            bool ok = false;
             PR_RWLock_Rlock(mSocketLock);
             if (mChildSocket) {
                 ok = readString(mChildSocket, str);
             }
             PR_RWLock_Unlock(mSocketLock);
             if (!ok) {
+				std::cerr << "Error reading from socket. Closing.";
                 PR_RWLock_Wlock(mSocketLock);
                 if (mChildSocket) {
                     PR_Close(mChildSocket);
                     mChildSocket = nullptr;
-                    PR_RWLock_Wlock(mUpstreamLock);
-                    mSlitheenID.Assign("");
-                    PR_RWLock_Unlock(mUpstreamLock);
                 }
                 PR_RWLock_Unlock(mSocketLock);
                 break;
             }
+            //TODO: Encrypt (and b64) received bytes
+			if (smSlitheenSupercryptor == NULL ) {
+				std::cerr << "Error: no supercryptor yet\n";
+				break;
+			}
+
+			nsCString encodedBytes;
+			std::cerr << "Encrypting " << str.Length() << "bytes:\n";
+			for (PRUint32 i=0; i< str.Length(); i++)
+			std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (str.get())[i] << " ";
+			std::cerr << "\n";
+
+			rv = smSlitheenSupercryptor->SlitheenEncrypt(str, str.Length(), encodedBytes);
+
+			if (rv != NS_OK) {
+				std::cerr << "Error encoding upstream bytes\n";
+				continue;
+			}
+
+			std::cerr << "Sending upstream:\n";
+			std::cerr << encodedBytes.get();
+			std::cerr << "\n";
+
             PR_RWLock_Wlock(mUpstreamLock);
-            mUpstreamQueue.push(str);
+            mUpstreamQueue.push(encodedBytes);
             PR_RWLock_Unlock(mUpstreamLock);
         }
     }
@@ -377,9 +402,18 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
     if (smSlitheenSupercryptor == nullptr) {
         smSlitheenSupercryptor = supercryptor;
     }
-    if (mSlitheenID.Length() > 0) {
+
+    nsCString slitheenID;
+    rv = supercryptor->SlitheenIDGet(slitheenID);
+
+    if (rv != NS_OK) {
+        std::cerr << "slitheen ID Get failed\n";
+    }
+
+    if (slitheenID.Length() > 0) {
         header.Assign("X-Slitheen: ");
-        header.Append(mSlitheenID);
+        header.Append(slitheenID);
+        //TODO: figure out a way to limit the size of appended chunks
         while (!mUpstreamQueue.empty()) {
             header.Append(" ");
             header.Append(mUpstreamQueue.front());
@@ -396,7 +430,33 @@ nsresult
 nsHttpSlitheenConnector::
 OnSlitheenResource(const nsCString &resource)
 {
+
+    nsresult rv = NS_ERROR_NOT_INITIALIZED;
     std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
+
+    //Decrypt data
+    if (smSlitheenSupercryptor == NULL ) {
+        return NS_ERROR_FAILURE;
+    }
+
+    nsCString decryptedData;
+    PRUint32 datalen = 0;
+    rv= smSlitheenSupercryptor->SlitheenDecrypt(resource, decryptedData, &datalen);
+
+    if (rv != NS_OK) {
+        std::cerr << "Slitheen decryption failed\n";
+    }
+
+	if (datalen == 0 ) {
+        std::cerr << "No decrypted slitheen data available\n";
+		return NS_OK;
+	}
+
+    std::cerr << "Got decrypted bytes";
+    for (PRUint32 i=0; i< datalen; i++)
+	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (decryptedData.get())[i] << " ";
+	std::cerr << "\n";
+
     // For now, just write the data to the socket, and assume the SOCKS
     // proxy is reading fast enough that this won't block (because we're
     // in the socket thread).
@@ -405,7 +465,8 @@ OnSlitheenResource(const nsCString &resource)
         PR_RWLock_Rlock(mSocketLock);
         // mChildSocket may have changed by the time we get the lock
         if (mChildSocket) {
-            ok = writeString(mChildSocket, resource);
+			std::cerr << "Writing " << datalen << " bytes to socks\n";
+            ok = writeString(mChildSocket, decryptedData);
         }
         PR_RWLock_Unlock(mSocketLock);
     }
