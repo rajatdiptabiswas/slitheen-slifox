@@ -315,7 +315,7 @@ Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
             nsHttpSlitheenConnector *connector =
                 nsHttpSlitheenConnector::getInstance();
             if (connector) {
-                connector->getHeader(slitheenheader);
+                connector->getHeader(mTrans->SlitheenGetSupercryptor(), slitheenheader);
             }
             nsAutoCString origin, uri;
             nsHttpRequestHead *reqhead = mTrans->RequestHead();
@@ -2643,6 +2643,14 @@ nsHttpTransaction::SlitheenGetStatus()
     if (!mConnection) return SlitheenStatusNone;
 
     return mConnection->SlitheenGetStatus();
+}
+
+nsISlitheenSupercryptor*
+nsHttpTransaction::SlitheenGetSupercryptor()
+{
+    if (!mConnection) return nullptr;
+
+    return mConnection->SlitheenGetSupercryptor();
 }
 
 } // namespace net

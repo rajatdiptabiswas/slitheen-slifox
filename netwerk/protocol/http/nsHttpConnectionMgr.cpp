@@ -1812,6 +1812,9 @@ public:
     SlitheenStatus SlitheenGetStatus() {
         return mConn ?  mConn->SlitheenGetStatus() : SlitheenStatusNone;
     }
+    nsISlitheenSupercryptor* SlitheenGetSupercryptor() {
+        return mConn ?  mConn->SlitheenGetSupercryptor() : nullptr;
+    }
 private:
     virtual ~ConnectionHandle();
     RefPtr<nsHttpConnection> mConn;
