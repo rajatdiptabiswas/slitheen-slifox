@@ -34,6 +34,7 @@
 #include "nsIWebProgressListener.h"
 #include "nsNSSCertHelper.h"
 #include "nsNSSComponent.h"
+#include "nsSlitheenSupercryptor.h"
 #include "nsPrintfCString.h"
 #include "nsServiceManagerUtils.h"
 #include "pkix/pkixtypes.h"
@@ -2856,5 +2857,20 @@ nsNSSSocketInfo::SlitheenGetStatus(int16_t *retval)
         *retval = 3;  // SlitheenStatusAcknowledged
     }
 
+    return NS_OK;
+}
+
+/* For now, just create a singleton object in the obvious way (which will
+   make one per process).  What _should_ happen is to register the object
+   and then all processes can talk to that one object. */
+static nsSlitheenSupercryptor *supercryptor = nullptr;
+
+NS_IMETHODIMP
+nsNSSSocketInfo::SlitheenGetSupercryptor(nsISlitheenSupercryptor **_retval)
+{
+    if (supercryptor == nullptr) {
+        supercryptor = new nsSlitheenSupercryptor();
+    }
+    *_retval = supercryptor;
     return NS_OK;
 }
