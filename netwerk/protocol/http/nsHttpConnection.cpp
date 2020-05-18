@@ -2086,6 +2086,32 @@ SlitheenStatus nsHttpConnection::SlitheenGetStatus()
   return SlitheenStatus(slitheenstatus);
 }
 
+nsISlitheenSupercryptor*
+nsHttpConnection::SlitheenGetSupercryptor()
+{
+    nsresult rv;
+    nsCOMPtr<nsISupports> securityInfo;
+    nsCOMPtr<nsISSLSocketControl> ssl;
+
+    GetSecurityInfo(getter_AddRefs(securityInfo));
+    if (!securityInfo) {
+        return nullptr;
+    }
+
+    ssl = do_QueryInterface(securityInfo, &rv);
+    if (NS_FAILED(rv)) {
+        return nullptr;
+    }
+
+    nsISlitheenSupercryptor *ret;
+    rv = ssl->SlitheenGetSupercryptor(&ret);
+    if (NS_FAILED(rv)) {
+        return nullptr;
+    }
+
+    return ret;
+}
+
 nsresult nsHttpConnection::OnWriteSegment(char* buf, uint32_t count,
                                           uint32_t* countWritten) {
   if (count == 0) {

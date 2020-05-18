@@ -250,6 +250,7 @@ class nsHttpConnection final : public nsAHttpSegmentReader,
   bool NoClientCertAuth() const;
 
   virtual SlitheenStatus SlitheenGetStatus();
+  virtual nsISlitheenSupercryptor* SlitheenGetSupercryptor();
 
   // HTTP/2 websocket support
   bool CanAcceptWebsocket();

@@ -8,6 +8,7 @@
 #include "nsISupports.h"
 #include "nsTArray.h"
 #include "nsWeakReference.h"
+#include "nsISlitheenSupercryptor.h"
 
 #ifdef Status
 /* Xlib headers insist on this for some reason... Nuke it because
@@ -227,6 +228,9 @@ class nsAHttpTransaction : public nsSupportsWeakReference {
   // Call this function to check if Slitheen is usable for this
   // transaction.  (It actually checks the associated connection.)
   virtual SlitheenStatus SlitheenGetStatus() { return SlitheenStatusNone; }
+
+  // Call this function to get the SlitheenSupercryptor object
+  virtual nsISlitheenSupercryptor *SlitheenGetSupercryptor() { return nullptr; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpTransaction, NS_AHTTPTRANSACTION_IID)

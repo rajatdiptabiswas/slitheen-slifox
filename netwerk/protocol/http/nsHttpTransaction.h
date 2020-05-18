@@ -199,6 +199,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void SetHttpTrailers(nsCString& aTrailers);
   SlitheenStatus SlitheenGetStatus() override;
+  nsISlitheenSupercryptor* SlitheenGetSupercryptor() override;
 
   bool IsWebsocketUpgrade();
   void SetH2WSTransaction(SpdyConnectTransaction*);
