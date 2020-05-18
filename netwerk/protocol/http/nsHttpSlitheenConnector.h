@@ -74,11 +74,8 @@ private:
     PRFileDesc *mChildSocket;  // the accepted socket; we only have one
                                //   active connection at a time
 
-    PRRWLock *mUpstreamLock;   // a lock protecting mSlitheenID and
-                               //   mUpstreamQueue
+    PRRWLock *mUpstreamLock;   // a lock protecting mUpstreamQueue
 
-    nsCString mSlitheenID;     // the Slitheen ID, provided by the
-                               //   Slitheen SOCKS proxy
     std::queue<nsCString> mUpstreamQueue;
                                // a queue of the upstream chunks,
                                //   provided by the Slitheen SOCKS proxy
