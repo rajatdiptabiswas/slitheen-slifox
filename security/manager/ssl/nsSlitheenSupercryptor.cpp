@@ -69,8 +69,8 @@ nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, nsACS
 
 
         if (slitheenHeader.datalen != 0 ) {
-			data.Append((const char *) decryptedHeader, SLITHEEN_HEADER_LEN - 4);
-			*len += SLITHEEN_HEADER_LEN - 4;
+			data.Append((const char *) decryptedHeader, 4); // We only need the stream id and len
+			*len += 4;
 		}
 		PORT_Free(decryptedHeader);
 
