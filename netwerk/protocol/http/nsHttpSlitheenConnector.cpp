@@ -278,26 +278,26 @@ bool
 readString(PRFileDesc *fd, nsACString &str)
 {
     // We need to read in the 12 byte header first
-    char headerbuf[12];
-    PRInt32 res = PR_Read_Fully(fd, headerbuf, 12);
-    if (res < 12) return false;
+    char headerbuf[4];
+    PRInt32 res = PR_Read_Fully(fd, headerbuf, 4);
+    if (res < 4) return false;
 
     // Read the length field of the header to determine the amount of data
     PRInt16 chunklen = chunkLen(headerbuf);
-    char *buf = new char[chunklen+12];
+    char *buf = new char[chunklen+4];
 
-    std::cerr << "Read in header ";
-    for (int i=0; i< 12; i++)
+    std::cerr << "Read in header: ";
+    for (int i=0; i< 4; i++)
 	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (headerbuf)[i] << " ";
 	std::cerr << "\n";
 
     // We send the full header to the relay station
-    memcpy(buf, headerbuf, 12);
+    memcpy(buf, headerbuf, 4);
     if (!buf) return false;
     res = PR_Read_Fully(fd, buf+4, chunklen);
 
-    std::cerr << "Read in data ";
-    for (int i=12; i< chunklen; i++)
+    std::cerr << "Read in " << chunklen << " bytes of data: ";
+    for (int i=4; i< chunklen+4; i++)
 	std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (buf)[i] << " ";
 	std::cerr << "\n";
 
@@ -419,6 +419,8 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
             mUpstreamQueue.pop();
         }
         header.Append("\r\n");
+        std::cerr << "Header: ";
+        std::cerr << header;
         rv = NS_OK;
     }
     PR_RWLock_Unlock(mUpstreamLock);
