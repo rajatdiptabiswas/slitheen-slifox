@@ -120,6 +120,7 @@ bool SPSData::operator!=(const SPSData& aOther) const {
   return !(operator==(aOther));
 }
 
+//TODO: Slitheen ID?
 // Described in ISO 23001-8:2016
 // Table 2
 enum class PrimaryID : uint8_t {
@@ -939,6 +940,7 @@ uint32_t H264::ComputeMaxRefFrames(const mozilla::MediaByteBuffer* aExtraData) {
   return maxRefFrames;
 }
 
+//TODO: Slitheen identifier?
 /* static */ H264::FrameType H264::GetFrameType(
     const mozilla::MediaRawData* aSample) {
   if (!AnnexB::IsAVCC(aSample)) {
@@ -1222,6 +1224,7 @@ bool H264::DecodeRecoverySEI(const mozilla::MediaByteBuffer* aSEI,
   return false;
 }
 
+//TODO: OK, this already exists.
 /*static */ already_AddRefed<mozilla::MediaByteBuffer> H264::CreateExtraData(
     uint8_t aProfile, uint8_t aConstraints, uint8_t aLevel,
     const gfx::IntSize& aSize) {

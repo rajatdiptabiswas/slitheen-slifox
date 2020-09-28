@@ -358,6 +358,7 @@ MP4TrackDemuxer::MP4TrackDemuxer(MediaResource* aResource,
     RefPtr<MediaByteBuffer> extraData = videoInfo->mExtraData;
     mNeedSPSForTelemetry = AccumulateSPSTelemetry(extraData);
     SPSData spsdata;
+    // TODO: H264 stuff to look into
     if (H264::DecodeSPSFromExtraData(extraData, spsdata) &&
         spsdata.pic_width > 0 && spsdata.pic_height > 0 &&
         H264::EnsureSPSIsSane(spsdata)) {

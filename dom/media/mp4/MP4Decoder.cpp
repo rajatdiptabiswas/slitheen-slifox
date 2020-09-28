@@ -55,6 +55,7 @@ static bool IsTypeValid(const MediaContainerType& aType) {
          aType.Type() == MEDIAMIMETYPE("video/x-m4v");
 }
 
+//TODO: Looks like a good place to indicate Slitheen
 /* statis */
 nsTArray<UniquePtr<TrackInfo>> MP4Decoder::GetTracksInfo(
     const MediaContainerType& aType, MediaResult& aError) {
