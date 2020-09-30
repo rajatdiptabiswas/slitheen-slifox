@@ -74,7 +74,7 @@ bool MoofParser::RebuildFragmentedIndex(BoxContext& aContext) {
     } else if (box.IsType("moof")) {
       Moof moof(box, mTrackParseMode, mTrex, mMvhd, mMdhd, mEdts, mSinf,
                 &mLastDecodeTime, mIsAudio);
-
+      // moof will contain mdat which is what we want, not sure exactly how to indicate Slitheen
       if (!moof.IsValid() && !box.Next().IsAvailable()) {
         // Moof isn't valid abort search for now.
         LOG_WARN(Moof,
@@ -602,7 +602,7 @@ bool Moof::ProcessCencAuxInfo(AtomType aScheme) {
   LOG_DEBUG(Moof, "Found cenc aux info and stored on index.");
   return true;
 }
-
+// Box containing Trun
 void Moof::ParseTraf(Box& aBox, const TrackParseMode& aTrackParseMode,
                      Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts,
                      Sinf& aSinf, uint64_t* aDecodeTime, bool aIsAudio) {
@@ -677,6 +677,7 @@ void Moof::ParseTraf(Box& aBox, const TrackParseMode& aTrackParseMode,
     if (box.IsType("trun")) {
       if (ParseTrun(box, aMvhd, aMdhd, aEdts, &decodeTime, aIsAudio).isOk()) {
         mValid = true;
+        // If Slitheen is indicated, do Slitheen replacement
       } else {
         LOG_WARN(Moof, "ParseTrun failed");
         mValid = false;

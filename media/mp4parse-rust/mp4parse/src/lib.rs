@@ -153,6 +153,7 @@ struct FileTypeBox {
     major_brand: FourCC,
     minor_version: u32,
     compatible_brands: Vec<FourCC>,
+    isSlitheenbox: bool,
 }
 
 /// Movie header box 'mvhd'.
@@ -700,6 +701,7 @@ fn skip_box_remain<T: Read>(src: &mut BMFFBox<T>) -> Result<()> {
 pub fn read_mp4<T: Read>(f: &mut T, context: &mut MediaContext) -> Result<()> {
     let mut found_ftyp = false;
     let mut found_moov = false;
+    let mut found_slib = false;
     // TODO(kinetik): Top-level parsing should handle zero-sized boxes
     // rather than throwing an error.
     let mut iter = BoxIter::new(f);
@@ -1037,6 +1039,8 @@ fn read_ftyp<T: Read>(src: &mut BMFFBox<T>) -> Result<FileTypeBox> {
         major_brand: From::from(major),
         minor_version: minor,
         compatible_brands: brands,
+        // Just trying this out for now, this likely should not always be true
+        isSlitheenbox: true,
     })
 }
 
