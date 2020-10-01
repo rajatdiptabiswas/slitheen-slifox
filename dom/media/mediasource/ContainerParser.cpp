@@ -27,7 +27,7 @@
 #include "SourceBufferResource.h"
 #include <algorithm>
 
-extern mozilla::LogModule* GetMediaSourceSamplesLog();
+extern mozillvideo fileodule* GetMediaSourceSamplesLog();
 
 #define MSE_DEBUG(arg, ...)                                            \
   DDMOZ_LOG(GetMediaSourceSamplesLog(), mozilla::LogLevel::Debug,      \
@@ -453,12 +453,15 @@ class MP4ContainerParser : public ContainerParser,
         }
         if (mInitOffset.isNothing() && AtomType(type) == initAtom) {
           mInitOffset = Some(reader.Offset());
+          printf("moov atom in ContainterParser\n")
         }
         if (mMediaOffset.isNothing() && AtomType(type) == mediaAtom) {
           mMediaOffset = Some(reader.Offset());
+          printf("moof atom in ContainterParser\n")
         }
         if (mDataOffset.isNothing() && AtomType(type) == dataAtom) {
           mDataOffset = Some(reader.Offset());
+          printf("mdat atom in ContainterParser\n")
         }
         if (size == 1) {
           // 64 bits size.
