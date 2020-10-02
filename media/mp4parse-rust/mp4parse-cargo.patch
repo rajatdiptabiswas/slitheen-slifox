@@ -10,7 +10,7 @@ index f04ad37ac568..a04b1e977735 100644
 +
  [badges]
  travis-ci = { repository = "https://github.com/mozilla/mp4parse-rust" }
- 
+
 @@ -30,9 +32,6 @@ num-traits = "0.2.0"
  [dev-dependencies]
  env_logger = "0.5.3"
