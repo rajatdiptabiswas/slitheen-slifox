@@ -858,7 +858,6 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
         case SSL_ENABLE_SLITHEEN:
         case SSL_COMPLETED_SLITHEEN:
         case SSL_USABLE_SLITHEEN:
-            SlitheenEnable(ss, val);
             break;
 
         default:
@@ -1012,13 +1011,13 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             val = ss->opt.enablePostHandshakeAuth;
         case SSL_ENABLE_SLITHEEN:
-            val = SlitheenEnabled(ss);
+	    //val = SlitheenEnabled(ss);
             break;
         case SSL_COMPLETED_SLITHEEN:
-            val = SlitheenCompleted(ss);
+            //val = SlitheenCompleted(ss);
             break;
         case SSL_USABLE_SLITHEEN:
-            val = SlitheenUsable(ss);
+           // val = SlitheenUsable(ss);
             break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -2349,8 +2348,8 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     ss->slitheenState = sm->slitheenState;
     PORT_Memcpy(ss->slitheenSharedSecret, sm->slitheenSharedSecret,
                 sizeof(ss->slitheenSharedSecret));
-    PORT_Memcpy(ss->slitheenRouterPubkey, sm->slitheenRouterPubkey,
-                sizeof(ss->slitheenRouterPubkey));
+    //PORT_Memcpy(ss->slitheenRouterPubkey, sm->slitheenRouterPubkey,
+    //            sizeof(ss->slitheenRouterPubkey));
 
     return fd;
 }
@@ -3998,8 +3997,8 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->slitheenState = SSLSlitheenStateOff;
     PORT_Memset(ss->slitheenSharedSecret, 0,
             sizeof(ss->slitheenSharedSecret));
-    PORT_Memset(ss->slitheenRouterPubkey, 0,
-            sizeof(ss->slitheenRouterPubkey));
+   // PORT_Memset(ss->slitheenRouterPubkey, 0,
+   //         sizeof(ss->slitheenRouterPubkey));
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);

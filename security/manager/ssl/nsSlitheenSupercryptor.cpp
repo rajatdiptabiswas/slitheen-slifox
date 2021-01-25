@@ -14,7 +14,7 @@
 
 nsSlitheenSupercryptor::nsSlitheenSupercryptor()
 {
-    SSL_SlitheenSuperGen(); //TODO: do something with return
+//    SSL_SlitheenSuperGen(); //TODO: do something with return
 }
 
 nsSlitheenSupercryptor::~nsSlitheenSupercryptor()
@@ -27,14 +27,6 @@ NS_IMPL_ISUPPORTS(nsSlitheenSupercryptor,
 NS_IMETHODIMP
 nsSlitheenSupercryptor::SlitheenIDGet(nsACString & id)
 {
-    char ids[4*SLITHEEN_ID_LEN/3 + 4];
-    if (SECSuccess != SSL_SlitheenIDGet(ids)) {
-        return NS_ERROR_FAILURE;
-    }
-
-    id.Assign(ids);
-
-    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -59,10 +51,10 @@ nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, nsACS
     while (remainingLength > 0) {
 
         /* First decrypt the header so we know how long the encrypted body is */
-        if (SECSuccess != SSL_SlitheenHeaderDecrypt(encryptedData, remainingLength,
-                    &slitheenHeader, &decryptedHeader, &encryptedBodyLen)) {
-            return NS_ERROR_FAILURE;
-        }
+    //    if (SECSuccess != SSL_SlitheenHeaderDecrypt(encryptedData, remainingLength,
+    //                &slitheenHeader, &decryptedHeader, &encryptedBodyLen)) {
+    //        return NS_ERROR_FAILURE;
+    //    }
 
         remainingLength -= SLITHEEN_HEADER_LEN;
         encryptedData += SLITHEEN_HEADER_LEN;
