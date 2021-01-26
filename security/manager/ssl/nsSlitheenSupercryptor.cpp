@@ -76,10 +76,10 @@ nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, nsACS
                 return NS_ERROR_FAILURE;
             }
 
-            if (SECSuccess != SSL_SlitheenBodyDecrypt(encryptedData,
-                        encryptedBodyLen, &slitheenHeader, &decryptedBody, &decryptedBodyLen)) {
-                return NS_ERROR_FAILURE;
-            }
+           // if (SECSuccess != SSL_SlitheenBodyDecrypt(encryptedData,
+           //             encryptedBodyLen, &slitheenHeader, &decryptedBody, &decryptedBodyLen)) {
+           //     return NS_ERROR_FAILURE;
+           // }
 
             remainingLength -= decryptedBodyLen + 32;
             encryptedData += decryptedBodyLen + 32;
