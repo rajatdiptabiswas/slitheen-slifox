@@ -56,8 +56,8 @@ nsSlitheenSupercryptor::SlitheenDecrypt(const nsACString & encryptedblock, nsACS
     //        return NS_ERROR_FAILURE;
     //    }
 
-        remainingLength -= SLITHEEN_HEADER_LEN;
-        encryptedData += SLITHEEN_HEADER_LEN;
+       // remainingLength -= SLITHEEN_HEADER_LEN;
+       // encryptedData += SLITHEEN_HEADER_LEN;
 
 
         if (slitheenHeader.datalen != 0 ) {

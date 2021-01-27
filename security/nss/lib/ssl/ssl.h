@@ -335,22 +335,22 @@ typedef struct {
     PRUint16 paddinglen;
 } SSL_SlitheenHeader;
 
-#define SLITHEEN_ID_LEN 28
-#define SLITHEEN_HEADER_LEN 16
+//#define SLITHEEN_ID_LEN 28
+//#define SLITHEEN_HEADER_LEN 16
 
 /* Called once per slitheen client. Generates the SlitheenID and
  * the supercryption keys */
-SSL_IMPORT SECStatus SSL_SlitheenSuperGen();
+//SSL_IMPORT SECStatus SSL_SlitheenSuperGen();
 
 /* Store the SlitheenID into SLITHEEN_ID_LEN bytes of slitheenid */
-SSL_IMPORT SECStatus SSL_SlitheenIDGet(char *slitheenid);
+//SSL_IMPORT SECStatus SSL_SlitheenIDGet(char *slitheenid);
 
 /* Encrypt some covert data.  Pass in the length and the body.
  * *encryptedblockp will be set to a newly allocated block, which will
  * be owned by the caller and must be freed with PORT_Free. *enclenp
  * will be set to the length of the encrypted block. */
-SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const PRUint32 len,
-    const PRUint8 *body, char **encodedbody);
+//SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const PRUint32 len,
+//    const PRUint8 *body, char **encodedbody);
 
 /* Decrypt the Slitheen header of some covert data.  Pass in the
  * encrypted block and its length, as well as a pointer to a
@@ -361,18 +361,18 @@ SSL_IMPORT SECStatus SSL_SlitheenEncrypt(const PRUint32 len,
  * encrypted block, so call both functions again (using encblocklen -
  * (SLITHEEN_HEADER_LEN + *encbodylenp) as the new encblocklen), and so on.
  */
-SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
-    PRUint32 encblocklen, SSL_SlitheenHeader *header, PRUint8 **headerp,
-	PRUint32 *encbodylenp);
+//SSL_IMPORT SECStatus SSL_SlitheenHeaderDecrypt(const PRUint8 *encryptedblock,
+//    PRUint32 encblocklen, SSL_SlitheenHeader *header, PRUint8 **headerp,
+//	PRUint32 *encbodylenp);
 
 /* Decrypt the Slitheen body of some covert data.  Pass in the
  * encrypted body and its length, as well as a pointer to a
  * the SSL_SlitheenHeader struct filled in by SSL_SlitheenHeaderDecrypt.
  * *bodyp will be set to a newly allocated block, which will be owned by
  * the caller and must be freed with PORT_Free. */
-SSL_IMPORT SECStatus SSL_SlitheenBodyDecrypt(const PRUint8 *encryptedbody,
-    PRUint32 encbodylen, const SSL_SlitheenHeader *header, PRUint8 **bodyp,
-	PRInt32 *decbodylenp);
+//SSL_IMPORT SECStatus SSL_SlitheenBodyDecrypt(const PRUint8 *encryptedbody,
+//    PRUint32 encbodylen, const SSL_SlitheenHeader *header, PRUint8 **bodyp,
+//	PRInt32 *decbodylenp);
 
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */

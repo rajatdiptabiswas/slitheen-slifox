@@ -855,9 +855,9 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             ss->opt.enablePostHandshakeAuth = val;
 
-        case SSL_ENABLE_SLITHEEN:
-        case SSL_COMPLETED_SLITHEEN:
-        case SSL_USABLE_SLITHEEN:
+//        case SSL_ENABLE_SLITHEEN:
+//        case SSL_COMPLETED_SLITHEEN:
+//        case SSL_USABLE_SLITHEEN:
             break;
 
         default:
@@ -1010,15 +1010,15 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRIntn *pVal)
             break;
         case SSL_ENABLE_POST_HANDSHAKE_AUTH:
             val = ss->opt.enablePostHandshakeAuth;
-        case SSL_ENABLE_SLITHEEN:
+        //case SSL_ENABLE_SLITHEEN:
 	    //val = SlitheenEnabled(ss);
-            break;
-        case SSL_COMPLETED_SLITHEEN:
+          //  break;
+       // case SSL_COMPLETED_SLITHEEN:
             //val = SlitheenCompleted(ss);
-            break;
-        case SSL_USABLE_SLITHEEN:
+         //   break;
+       // case SSL_USABLE_SLITHEEN:
            // val = SlitheenUsable(ss);
-            break;
+         //   break;
         default:
             PORT_SetError(SEC_ERROR_INVALID_ARGS);
             rv = SECFailure;
