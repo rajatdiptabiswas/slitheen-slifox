@@ -58,7 +58,6 @@ CSRCS = \
         sslprimitive.c \
         tls13esni.c \
         ptwist168.c \
-        slitheen.c \
         $(NULL)
 
 LIBRARY_NAME = ssl

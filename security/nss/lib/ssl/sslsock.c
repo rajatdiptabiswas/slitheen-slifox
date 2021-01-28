@@ -20,7 +20,6 @@
 #include "pk11pqg.h"
 #include "pk11pub.h"
 #include "tls13esni.h"
-#include "slitheen.h"
 
 static const sslSocketOps ssl_default_ops = { /* No SSL. */
                                               ssl_DefConnect,
@@ -361,11 +360,6 @@ ssl_DupSocket(sslSocket *os)
         ss->clientRandomCallback = os->clientRandomCallback;
         ss->generateECDHEKeyCallback = os->generateECDHEKeyCallback;
         ss->finishedMACCallback = os->finishedMACCallback;
-        ss->slitheenState = os->slitheenState;
-        PORT_Memcpy(ss->slitheenSharedSecret, os->slitheenSharedSecret,
-                    sizeof(ss->slitheenSharedSecret));
-        PORT_Memcpy(ss->slitheenRouterPubkey, os->slitheenRouterPubkey,
-                    sizeof(ss->slitheenRouterPubkey));
         PORT_Memcpy((void *)ss->namedGroupPreferences,
                     os->namedGroupPreferences,
                     sizeof(ss->namedGroupPreferences));
@@ -2345,12 +2339,6 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         ss->generateECDHEKeyCallback = sm->generateECDHEKeyCallback;
     if (sm->finishedMACCallback)
         ss->finishedMACCallback = sm->finishedMACCallback;
-    ss->slitheenState = sm->slitheenState;
-    PORT_Memcpy(ss->slitheenSharedSecret, sm->slitheenSharedSecret,
-                sizeof(ss->slitheenSharedSecret));
-    //PORT_Memcpy(ss->slitheenRouterPubkey, sm->slitheenRouterPubkey,
-    //            sizeof(ss->slitheenRouterPubkey));
-
     return fd;
 }
 
@@ -3994,11 +3982,6 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     ss->clientRandomCallback = NULL;
     ss->generateECDHEKeyCallback = NULL;
     ss->finishedMACCallback = NULL;
-    ss->slitheenState = SSLSlitheenStateOff;
-    PORT_Memset(ss->slitheenSharedSecret, 0,
-            sizeof(ss->slitheenSharedSecret));
-   // PORT_Memset(ss->slitheenRouterPubkey, 0,
-   //         sizeof(ss->slitheenRouterPubkey));
 
     ssl_ChooseOps(ss);
     ssl3_InitSocketPolicy(ss);
