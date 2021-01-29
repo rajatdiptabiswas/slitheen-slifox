@@ -45,8 +45,6 @@ typedef struct TLS13KeyShareEntryStr TLS13KeyShareEntry;
 #include "ssl3ext.h"
 #include "sslspec.h"
 
-#include "slitheenstate.h"
-
 #if defined(DEBUG) || defined(TRACE)
 #ifdef __cplusplus
 #define Debug 1
@@ -1018,9 +1016,6 @@ struct sslSocketStr {
     SSLFinishedMACCallback finishedMACCallback;
 
     /* Slitheen state */
-    SSLSlitheenState slitheenState;
-    PRUint8 slitheenSharedSecret[SLITHEEN_SS_LEN];
-    PRUint8 slitheenRouterPubkey[SLITHEEN_PUBKEY_LEN];
 
     PRIntervalTime rTimeout; /* timeout for NSPR I/O */
     PRIntervalTime wTimeout; /* timeout for NSPR I/O */

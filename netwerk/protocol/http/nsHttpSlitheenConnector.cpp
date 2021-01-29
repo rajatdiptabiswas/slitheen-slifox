@@ -144,8 +144,8 @@ nsHttpSlitheenConnector::
 
 static void slitheen_run(void *arg)
 {
-    nsHttpSlitheenConnector *obj = (nsHttpSlitheenConnector*)arg;
-    obj->mainloop();
+    //nsHttpSlitheenConnector *obj = (nsHttpSlitheenConnector*)arg;
+    //obj->mainloop();
 }
 
 bool
@@ -361,24 +361,12 @@ mainloop()
                 PR_RWLock_Unlock(mSocketLock);
                 break;
             }
-            //TODO: Encrypt (and b64) received bytes
-			if (smSlitheenSupercryptor == NULL ) {
-				std::cerr << "Error: no supercryptor yet\n";
-				break;
-			}
-
 			nsCString encodedBytes;
 			std::cerr << "Encrypting " << str.Length() << "bytes:\n";
 			for (PRUint32 i=0; i< str.Length(); i++)
 			std::cerr << std::hex << std::setfill('0') << std::setw(2) << (int) (str.get())[i] << " ";
 			std::cerr << "\n";
 
-			rv = smSlitheenSupercryptor->SlitheenEncrypt(str, str.Length(), encodedBytes);
-
-			if (rv != NS_OK) {
-				std::cerr << "Error encoding upstream bytes\n";
-				continue;
-			}
 
 			std::cerr << "Sending upstream:\n";
 			std::cerr << encodedBytes.get();
@@ -398,33 +386,7 @@ getHeader(nsISlitheenSupercryptor *supercryptor, nsCString &header)
     nsresult rv = NS_ERROR_NOT_INITIALIZED;
 
     PR_RWLock_Wlock(mUpstreamLock);
-    if (smSlitheenSupercryptor == nullptr) {
-        smSlitheenSupercryptor = supercryptor;
-    }
-
-    nsCString slitheenID;
-    rv = supercryptor->SlitheenIDGet(slitheenID);
-
-    if (rv != NS_OK) {
-        std::cerr << "slitheen ID Get failed\n";
-    }
-
-    if (slitheenID.Length() > 0) {
-        header.Assign("X-Slitheen: ");
-        header.Append(slitheenID);
-        //TODO: figure out a way to limit the size of appended chunks
-        while (!mUpstreamQueue.empty()) {
-            header.Append(" ");
-            header.Append(mUpstreamQueue.front());
-            mUpstreamQueue.pop();
-        }
-        header.Append("\r\n");
-        std::cerr << "Header: ";
-        std::cerr << header;
-        rv = NS_OK;
-    }
-    PR_RWLock_Unlock(mUpstreamLock);
-    return rv;
+    return NS_OK;
 }
 
 nsresult
@@ -435,18 +397,9 @@ OnSlitheenResource(const nsCString &resource)
     nsresult rv = NS_ERROR_NOT_INITIALIZED;
     std::cerr << "Slitheen resource received: (" << resource.Length() << " bytes)\n";
 
-    //Decrypt data
-    if (smSlitheenSupercryptor == NULL ) {
-        return NS_ERROR_FAILURE;
-    }
 
     nsCString decryptedData;
     PRUint32 datalen = 0;
-    rv= smSlitheenSupercryptor->SlitheenDecrypt(resource, decryptedData, &datalen);
-
-    if (rv != NS_OK) {
-        std::cerr << "Slitheen decryption failed\n";
-    }
 
 	if (datalen == 0 ) {
         std::cerr << "No decrypted slitheen data available\n";
@@ -484,24 +437,6 @@ void
 nsHttpSlitheenConnector::
 SendSlitheenResource(nsCString data)
 {
-    SlitheenConnectorChild *connectorChild;
-
-    using mozilla::dom::ContentChild;
-    ContentChild *child = ContentChild::GetSingleton();
-
-    if (child) {
-
-        PSlitheenConnectorChild *pc =
-            child->SendPSlitheenConnectorConstructor();
-        connectorChild = static_cast<SlitheenConnectorChild *>(pc);
-
-        if (connectorChild) {
-            connectorChild->SendOnSlitheenResource(data);
-        }
-
-    } else {
-        std::cerr << "Failed to get child. pid = " << getpid() << "\n";
-    }
 
 }
 
@@ -509,28 +444,6 @@ nsresult
 nsHttpSlitheenConnector::
 ReceiveResource(nsCString resource)
 {
-    //If it's a child, send to parent
-    if (XRE_IsContentProcess()) {
-
-        RefPtr<Runnable> runnable =
-            NS_NewRunnableFunction("net::nsHttpSlitheenConnector::SendSlitheenResource",[resource]() {
-                    net::nsHttpSlitheenConnector::SendSlitheenResource(resource);
-                    });
-
-        using mozilla::dom::ContentChild;
-        ContentChild *child = ContentChild::GetSingleton();
-
-        if (child) {
-            child->GetIPCChannel()->GetWorkerLoop()->PostTask(runnable.forget());
-        }
-    } else if (XRE_IsParentProcess()) {
-        nsHttpSlitheenConnector *connector =
-            nsHttpSlitheenConnector::getInstance();
-        if (connector) {
-            connector->OnSlitheenResource(resource);
-        }
-    }
-
     return NS_OK;
 }
 
