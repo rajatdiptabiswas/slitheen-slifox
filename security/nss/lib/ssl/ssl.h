@@ -265,21 +265,6 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  */
 #define SSL_RECORD_SIZE_LIMIT 34
 
-/* Enable Slitheen censorship circumvention for this socket.
- */
-
-#define SSL_ENABLE_SLITHEEN 200
-
-/* Check if this socket has completed its check for usability of
- * Slitheen censorship circumvention.
- */
-#define SSL_COMPLETED_SLITHEEN 201
-
-/* Check if this socket is currently usable for Slitheen censorship
- * circumvention.
- */
-#define SSL_USABLE_SLITHEEN 202
-
 /* Enables TLS 1.3 compatibility mode.  In this mode, the client includes a fake
  * session ID in the handshake and sends a ChangeCipherSpec.  A server will
  * always use the setting chosen by the client, so the value of this option has
@@ -324,7 +309,6 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * authentication.
  */
 #define SSL_ENABLE_POST_HANDSHAKE_AUTH 39
-
 
 #ifdef SSL_DEPRECATED_FUNCTION
 /* Old deprecated function names */
@@ -1463,38 +1447,6 @@ extern const char *NSSSSL_GetVersion(void);
  */
 SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
                                                  PRErrorCode error);
-
-/* Applications that wish to provide a specific ClientRandom value can
- * use this callback function.  SECSuccess indicates that the call was
- * successful, and SSL3_RANDOM_LENGTH bytes were written to r->rand.
- * Called from ssl3_SendClientHello().
- */
-typedef struct sslSocketStr *sslSocketPtr;
-typedef const struct sslSocketStr *sslSocketConstPtr;
-typedef PRUint8 *SSL3RandomPtr;
-typedef SECStatus(PR_CALLBACK *SSLClientRandomCallback)(
-    sslSocketPtr ss, SSL3RandomPtr r);
-
-/* Applications that wish to generate their ECDHE keys deterministically
- * from a seed can use this callback function.  SECSuccess indicates
- * that the call was successful; *pubKey and *privKey point to the newly
- * allocated public and private keys, respectively.  Called from
- * ssl_CreateECDHEphemeralKeyPair().
- */
-typedef SECStatus(PR_CALLBACK *SSLGenerateECDHEKeyCallback)(
-    sslSocketConstPtr ss, unsigned int group_bits, SECKEYECParams *ecParams,
-    SECKEYPublicKey **pubKey, SECKEYPrivateKey **privKey);
-
-/* Applications that wish to be able to accept different Finished MACs
- * to indicate different signals from the server can use this callback
- * function.  SECSuccess indicates the call was successful, and the
- * library should accept this Finished message.  Called from
- * ssl3_HandleFinished().
- */
-typedef const struct TLSFinishedStr *TLSFinishedConstPtr;
-typedef SECStatus(PR_CALLBACK *SSLFinishedMACCallback)(
-    sslSocketPtr ss, TLSFinishedConstPtr finmsg,
-    TLSFinishedConstPtr expectedfinmsg);
 
 /*
  * This is used to access experimental APIs.  Don't call this directly.  This is

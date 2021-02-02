@@ -111,7 +111,7 @@ nsHttpConnection::nsHttpConnection()
       mReceivedSocketWouldBlockDuringFastOpen(false),
       mCheckNetworkStallsWithTFO(false),
       mLastRequestBytesSentTime(0),
-      mWaitingForSlitheen(false),
+//      mWaitingForSlitheen(false),
       mBootstrappedTimingsSet(false) {
   LOG(("Creating nsHttpConnection @%p\n", this));
 
@@ -1188,11 +1188,11 @@ bool nsHttpConnection::IsAlive() {
   }
 #endif
 
-  if (mWaitingForSlitheen && mSocketOut && mTransaction &&
-        mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
-      mWaitingForSlitheen = false;
-      ResumeSend();
-  }
+ // if (mWaitingForSlitheen && mSocketOut && mTransaction &&
+ //       mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
+ //     mWaitingForSlitheen = false;
+ //     ResumeSend();
+ // }
 
   return alive;
 }
@@ -1960,8 +1960,8 @@ nsresult nsHttpConnection::OnSocketWritable() {
     } else if (!mTransaction) {
       rv = NS_ERROR_FAILURE;
       LOG(("  No Transaction In OnSocketWritable\n"));
-    } else if (mTransaction->SlitheenGetStatus() == SlitheenStatusWaiting
-                && NS_SUCCEEDED(mSocketOutCondition)) {
+//    } else if (mTransaction->SlitheenGetStatus() == SlitheenStatusWaiting
+//                && NS_SUCCEEDED(mSocketOutCondition)) {
       // We're waiting to see if Slitheen will be acknowledged
       // on this connection, so don't start reading the
       // request headers yet.  When the receiving side of the
@@ -1969,7 +1969,7 @@ nsresult nsHttpConnection::OnSocketWritable() {
       // OnSocketReadable), the Slitheen status will be
       // rechecked and ResumeSend() will be called to
       // wake up the sending side if ready.
-      mWaitingForSlitheen = true;
+//      mWaitingForSlitheen = true;
     } else if (NS_SUCCEEDED(rv)) {
       // for non spdy sessions let the connection manager know
       if (!mReportedSpdy) {
@@ -2059,58 +2059,58 @@ nsresult nsHttpConnection::OnSocketWritable() {
   return rv;
 }
 
-SlitheenStatus nsHttpConnection::SlitheenGetStatus()
-{
+//SlitheenStatus nsHttpConnection::SlitheenGetStatus()
+//{
   // Check whether we should be adding Slitheen headers
 
-  nsresult rv;
-  nsCOMPtr<nsISupports> securityInfo;
-  nsCOMPtr<nsISSLSocketControl> ssl;
+//  nsresult rv;
+//  nsCOMPtr<nsISupports> securityInfo;
+//  nsCOMPtr<nsISSLSocketControl> ssl;
 
-  GetSecurityInfo(getter_AddRefs(securityInfo));
-  if (!securityInfo) {
-    return SlitheenStatusNone;
-  }
+//  GetSecurityInfo(getter_AddRefs(securityInfo));
+//  if (!securityInfo) {
+//    return SlitheenStatusNone;
+//  }
 
-  ssl = do_QueryInterface(securityInfo, &rv);
-  if (NS_FAILED(rv)) {
-    return SlitheenStatusNone;
-  }
+//  ssl = do_QueryInterface(securityInfo, &rv);
+//  if (NS_FAILED(rv)) {
+//    return SlitheenStatusNone;
+//  }
 
-  int16_t slitheenstatus;
-  rv = ssl->SlitheenGetStatus(&slitheenstatus);
-  if (NS_FAILED(rv)) {
-    return SlitheenStatusNone;
-  }
+//  int16_t slitheenstatus;
+//  rv = ssl->SlitheenGetStatus(&slitheenstatus);
+//  if (NS_FAILED(rv)) {
+//    return SlitheenStatusNone;
+//  }
 
-  return SlitheenStatus(slitheenstatus);
-}
+//  return SlitheenStatus(slitheenstatus);
+//}
 
-nsISlitheenSupercryptor*
-nsHttpConnection::SlitheenGetSupercryptor()
-{
-    nsresult rv;
-    nsCOMPtr<nsISupports> securityInfo;
-    nsCOMPtr<nsISSLSocketControl> ssl;
-
-    GetSecurityInfo(getter_AddRefs(securityInfo));
-    if (!securityInfo) {
-        return nullptr;
-    }
-
-    ssl = do_QueryInterface(securityInfo, &rv);
-    if (NS_FAILED(rv)) {
-        return nullptr;
-    }
-
-    nsISlitheenSupercryptor *ret;
-    rv = ssl->SlitheenGetSupercryptor(&ret);
-    if (NS_FAILED(rv)) {
-        return nullptr;
-    }
-
-    return ret;
-}
+//nsISlitheenSupercryptor*
+//nsHttpConnection::SlitheenGetSupercryptor()
+//{
+//    nsresult rv;
+//    nsCOMPtr<nsISupports> securityInfo;
+//    nsCOMPtr<nsISSLSocketControl> ssl;
+//
+//    GetSecurityInfo(getter_AddRefs(securityInfo));
+//    if (!securityInfo) {
+//        return nullptr;
+//    }
+//
+//    ssl = do_QueryInterface(securityInfo, &rv);
+//    if (NS_FAILED(rv)) {
+//        return nullptr;
+//    }
+//
+//    nsISlitheenSupercryptor *ret;
+//    rv = ssl->SlitheenGetSupercryptor(&ret);
+//    if (NS_FAILED(rv)) {
+//        return nullptr;
+//    }
+//
+//    return ret;
+//}
 
 nsresult nsHttpConnection::OnWriteSegment(char* buf, uint32_t count,
                                           uint32_t* countWritten) {
@@ -2222,11 +2222,11 @@ nsresult nsHttpConnection::OnSocketReadable() {
     // read more from the socket until error...
   } while (again && gHttpHandler->Active());
 
-  if (mWaitingForSlitheen && mSocketOut && mTransaction &&
-        mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
-    mWaitingForSlitheen = false;
-    ResumeSend();
-  }
+//  if (mWaitingForSlitheen && mSocketOut && mTransaction &&
+//        mTransaction->SlitheenGetStatus() != SlitheenStatusWaiting) {
+//    mWaitingForSlitheen = false;
+//    ResumeSend();
+//  }
 
   return rv;
 }

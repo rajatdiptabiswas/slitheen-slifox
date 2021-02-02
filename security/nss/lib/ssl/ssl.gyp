@@ -49,7 +49,6 @@
         'tls13hashstate.c',
         'tls13hkdf.c',
         'tls13replay.c',
-        'ptwist168.c',
       ],
       'conditions': [
         [ 'OS=="win"', {

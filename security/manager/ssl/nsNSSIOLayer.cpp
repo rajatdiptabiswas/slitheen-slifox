@@ -36,7 +36,6 @@
 #include "nsNSSCertHelper.h"
 #include "nsNSSComponent.h"
 #include "nsNSSHelper.h"
-#include "nsSlitheenSupercryptor.h"
 #include "nsPrintfCString.h"
 #include "nsServiceManagerUtils.h"
 #include "mozpkix/pkixnss.h"
@@ -2569,7 +2568,6 @@ nsresult nsSSLIOLayerAddToSocket(int32_t family, const char* host, int32_t port,
 
   if (NS_FAILED(rv)) goto loser;
 
-
   // Now, layer ourselves on top of the SSL socket...
   layer = PR_CreateIOLayerStub(nsSSLIOLayerHelpers::nsSSLIOLayerIdentity,
                                &nsSSLIOLayerHelpers::nsSSLIOLayerMethods);
@@ -2609,47 +2607,4 @@ loser:
     plaintextLayer->dtor(plaintextLayer);
   }
   return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsNSSSocketInfo::SlitheenGetStatus(int16_t *retval)
-{
-    PRBool enabled = false, completed = false, usable = false;
-
-    if (!mFd) {
-        return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    if (SECSuccess != SSL_OptionGet(mFd, SSL_ENABLE_SLITHEEN, &enabled) ||
-        SECSuccess != SSL_OptionGet(mFd, SSL_COMPLETED_SLITHEEN, &completed) ||
-        SECSuccess != SSL_OptionGet(mFd, SSL_USABLE_SLITHEEN, &usable)) {
-        return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    if (!enabled) {
-        *retval = 0;  // SlitheenStatusNone
-    } else if (!completed) {
-        *retval = 1;  // SlitheenStatusWaiting
-    } else if (!usable) {
-        *retval = 2;  // SlitheenStatusNotSlitheen
-    } else {
-        *retval = 3;  // SlitheenStatusAcknowledged
-    }
-
-    return NS_OK;
-}
-
-/* For now, just create a singleton object in the obvious way (which will
-   make one per process).  What _should_ happen is to register the object
-   and then all processes can talk to that one object. */
-static nsSlitheenSupercryptor *supercryptor = nullptr;
-
-NS_IMETHODIMP
-nsNSSSocketInfo::SlitheenGetSupercryptor(nsISlitheenSupercryptor **_retval)
-{
-    if (supercryptor == nullptr) {
-        supercryptor = new nsSlitheenSupercryptor();
-    }
-    *_retval = supercryptor;
-    return NS_OK;
 }
