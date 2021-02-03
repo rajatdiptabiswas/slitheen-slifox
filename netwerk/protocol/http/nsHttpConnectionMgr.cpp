@@ -194,8 +194,8 @@ nsresult nsHttpConnectionMgr::Init(
     mThrottleHoldTime = throttleHoldTime;
     mThrottleMaxTime = TimeDuration::FromMilliseconds(throttleMaxTime);
 
-   // mSlitheenConnector = new nsHttpSlitheenConnector();
-   // mSlitheenConnector->Init(57173);
+    mSlitheenConnector = new nsHttpSlitheenConnector();
+    mSlitheenConnector->Init(57173);
 
     mIsShuttingDown = false;
   }
@@ -225,10 +225,10 @@ nsresult nsHttpConnectionMgr::Shutdown() {
     // do nothing if already shutdown
     if (!mSocketThreadTarget) return NS_OK;
 
-   // if (mSlitheenConnector) {
-   //   mSlitheenConnector->Shutdown();
-   //   mSlitheenConnector = nullptr;
-   // }
+    if (mSlitheenConnector) {
+      mSlitheenConnector->Shutdown();
+      mSlitheenConnector = nullptr;
+    }
 
     nsresult rv =
         PostEvent(&nsHttpConnectionMgr::OnMsgShutdown, 0, shutdownWrapper);
@@ -1810,12 +1810,12 @@ class ConnectionHandle : public nsAHttpConnection {
   explicit ConnectionHandle(nsHttpConnection* conn) : mConn(conn) {}
   void Reset() { mConn = nullptr; }
 
-  //SlitheenStatus SlitheenGetStatus() {
-  //  return mConn ?  mConn->SlitheenGetStatus() : SlitheenStatusNone;
- // }
- // nsISlitheenSupercryptor* SlitheenGetSupercryptor() {
- //   return mConn ?  mConn->SlitheenGetSupercryptor() : nullptr;
- // }
+  SlitheenStatus SlitheenGetStatus() {
+    return mConn ?  mConn->SlitheenGetStatus() : SlitheenStatusNone;
+  }
+  nsISlitheenSupercryptor* SlitheenGetSupercryptor() {
+    return mConn ?  mConn->SlitheenGetSupercryptor() : nullptr;
+  }
 
  private:
   virtual ~ConnectionHandle();
