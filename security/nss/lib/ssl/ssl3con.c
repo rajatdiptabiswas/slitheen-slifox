@@ -11451,11 +11451,11 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
         return SECFailure;
     }
 
-    rv = ssl_HashHandshakeMessage(ss, ssl_hs_finished, b, length);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return rv;
-    }
+    //rv = ssl_HashHandshakeMessage(ss, ssl_hs_finished, b, length);
+    //if (rv != SECSuccess) {
+    //    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    //    return rv;
+   // }
 
     isTLS = (PRBool)(ss->ssl3.crSpec->version > SSL_LIBRARY_VERSION_3_0);
     if (isTLS) {
@@ -11476,9 +11476,8 @@ ssl3_HandleFinished(sslSocket *ss, PRUint8 *b, PRUint32 length)
             ss->ssl3.hs.finishedMsgs.tFinished[0] = tlsFinished;
         ss->ssl3.hs.finishedBytes = sizeof(tlsFinished);
 
-
         if (rv == SECSuccess) {  /* ssl3_ComputeTLSFinished was successul, update handshake hash */
-            rv = ssl3_UpdateHandshakeHashes(ss, (const unsigned char *) &tlsFinished, ss->ssl3.hs.finishedBytes);
+            rv = ssl_HashHandshakeMessage(ss, ssl_hs_finished, &tlsFinished, ss->ssl3.hs.finishedBytes); 
         }
 
         if (rv == SECSuccess) {  /* update of TLSFinished hash was successul */
